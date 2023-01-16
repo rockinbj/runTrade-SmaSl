@@ -123,7 +123,9 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             pos.sort_values(by="盈亏比例(%)", ascending=False, inplace=True)
             d = pos.to_dict(orient="index")
 
+            msg += f"#### 账户权益 : {wal}U\n"
             msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
+            
             for k,v in d.items():
                 msg += f"""
 #### {k}
@@ -139,17 +141,17 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
 
         else:
             msg += "#### 当前空仓\n"
-        
-        msg += f"#### 账户权益 : {wal}U\n"
-        msg += f"#### 账户余额 : {bal}U\n"
+
         msg += f"#### 轮动数量 : {TOP+len(SYMBOLS_WHITE)-len(SYMBOLS_BLACK)}\n"
         msg += f"#### 开仓级别 : {OPEN_LEVEL}\n"
         msg += f"#### 开仓周期 : {OPEN_PERIOD}\n"
+        msg += f"#### 涨幅门槛 : {MIN_CHANGE*100}%\n"
         msg += f"#### 平仓级别 : {CLOSE_LEVEL}\n"
         msg += f"#### 平仓周期 : {CLOSE_PERIOD}\n"
         msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
         msg += f"#### 固定止损 : {SL_PERCENT if ENABLE_SL else 'False'}\n"
-        msg += f"#### 使用上限 : {MAX_BALANCE*100}%\n"
+        msg += f"#### 账户余额 : {bal}U\n"
+        msg += f"#### 资金利用 : {MAX_BALANCE*100}%\n"
 
         sendMixin(msg, _type="PLAIN_POST")
 

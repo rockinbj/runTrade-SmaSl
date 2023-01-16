@@ -64,7 +64,7 @@ def main():
         currentCoinNum = pos.shape[0]
         needCoinNum = reload(settings).SELECTION_NUM
         logger.info(f"当前持仓币种: {pos.index.tolist()}")
-        logger.info(f"当前持仓币数量: {currentCoinNum}, 选币数量: {needCoinNum}")
+        logger.info(f"当前持币: {currentCoinNum}, 选币数量: {needCoinNum}")
 
         # 如果当前持仓小于选币数量，则选币做多
         if currentCoinNum < needCoinNum:
