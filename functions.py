@@ -924,7 +924,7 @@ def closePosition(exchangeId, markets, openPositions, level, factor, period, met
     
     for symbol,df in klines.items():
         closeSig = getCloseSignal(df, factor, period, method)
-        reachHoldTime = (time.time()*1000-openPositions.loc[symbol, "timestamp"])>=ex.parseTimeframe(holdTime)
+        reachHoldTime = (time.time()*1000-openPositions.loc[symbol, "timestamp"])>=ex.parseTimeframe(holdTime)*1000
         if closeSig or reachHoldTime:
             if reachHoldTime: logger.debug(f"{symbol}满足持仓时间平仓")
             if closeSig: logger.debug(f"{symbol}满足closeFactor平仓")
