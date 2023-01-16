@@ -780,7 +780,7 @@ def placeBatchOrderClose(exchange, symbols, markets):
                 sendAndPrintError(f"{STRATEGY_NAME} placeBatchOrderClose({s}构造订单报错，跳过该币种，请检查日志{e})")
                 logger.exception(e)
                 continue
-            
+
         logger.debug(f"批量平仓单参数: {orders}")
         ordersTotal += orders
         try:
@@ -816,10 +816,10 @@ def placeBatchOrderClose(exchange, symbols, markets):
     return closed
 
 
-def placeBatchOrderOpen(exchange, symbols, markets):
+def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
     # symbols = [a,b,c]
     balance = getBalance(exchange, symbol="USDT")["free"]
-    selectNum = len(symbols)
+    # selectNum = len(symbols)
     eachCash = int(balance / selectNum)
 
     # batchOrder每批最多5笔订单，分批发送
@@ -885,7 +885,7 @@ def placeBatchOrderOpen(exchange, symbols, markets):
     return opened
 
 
-def openPosition(exchangeId, markets, openPositions, openFactor, openLevel, openPeriod, filterFactor, filterLevel, filterPeriod):
+def openPosition(exchangeId, markets, openPositions, openFactor, openLevel, openPeriod, filterFactor, filterLevel, filterPeriod, maxSelectNum):
     ex = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
     ex.loadMarkets()
     openedSymbols = openPositions.index.tolist()
@@ -919,7 +919,7 @@ def openPosition(exchangeId, markets, openPositions, openFactor, openLevel, open
     opened = []
 
     if longCoins:
-        opened = placeBatchOrderOpen(ex, longCoins, markets)
+        opened = placeBatchOrderOpen(ex, longCoins, markets, selectNum=maxSelectNum)
     
     return opened
 
