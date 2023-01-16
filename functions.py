@@ -928,6 +928,22 @@ def closePosition(exchangeId, markets, openPositions, level, factor, period, met
     return closed
     
 
+def closePositionForce(exchange, markets, openPostions):
+        
+    for symbol,pos in openPostions.iterrows():
+        symbolId = markets[symbol]["id"]
+        para = {
+            "symbol": symbolId,
+            "side": "SELL",
+            "type": "MARKET",
+            "quantity": pos["contracts"],
+            "reduceOnly": True,
+        }
+        try:
+            exchange.fapiPrivatePostOrder(para)
+        except Exception as e:
+            logger.error(f"closePositionForce({symbol})强制平仓出错: {e}")
+            logger.exception(e)
 
 
 if __name__ == "__main__":
