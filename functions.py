@@ -765,16 +765,22 @@ def placeBatchOrderClose(exchange, symbols, markets):
 
         orders = []
         for s in subSymbols:
-            symbol = list(s.keys())[0]
-            amount = float(list(s.values())[0])
-            symbolId = markets[symbol]["id"]
-            orders.append({
-                "symbol" : symbolId,
-                "side" : "SELL",
-                "type" : "MARKET",
-                "quantity": exchange.amountToPrecision(symbol, amount),
-                "reduceOnly": "true",
-            })
+            try:
+                symbol = list(s.keys())[0]
+                amount = float(list(s.values())[0])
+                symbolId = markets[symbol]["id"]
+                orders.append({
+                    "symbol" : symbolId,
+                    "side" : "SELL",
+                    "type" : "MARKET",
+                    "quantity": exchange.amountToPrecision(symbol, amount),
+                    "reduceOnly": "true",
+                })
+            except Exception as e:
+                sendAndPrintError(f"{STRATEGY_NAME} placeBatchOrderClose({s}构造订单报错，跳过该币种，请检查日志{e})")
+                logger.exception(e)
+                continue
+            
         logger.debug(f"批量平仓单参数: {orders}")
         ordersTotal += orders
         try:
@@ -831,13 +837,19 @@ def placeBatchOrderOpen(exchange, symbols, markets):
                 exchange.setLeverage(LEVERAGE, symbol)
             except Exception:
                 pass
+            
+            try:
+                orders.append({
+                    "symbol" : symbolId,
+                    "side" : "BUY",
+                    "type" : "MARKET",
+                    "quantity": exchange.amountToPrecision(symbol, eachCash/getTicker(exchange, markets, symbol).loc[0, "askPrice"]),
+                })
+            except Exception as e:
+                sendAndPrintError(f"{STRATEGY_NAME} placeBatchOrderOpen({symbol}构造订单报错，跳过该币种，请检查日志{e})")
+                logger.exception(e)
+                continue
 
-            orders.append({
-                "symbol" : symbolId,
-                "side" : "BUY",
-                "type" : "MARKET",
-                "quantity": exchange.amountToPrecision(symbol, eachCash/getTicker(exchange, markets, symbol).loc[0, "askPrice"]),
-            })
         logger.debug(f"批量开仓单参数: {orders}")
         ordersTotal += orders
         try:
