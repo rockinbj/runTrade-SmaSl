@@ -30,6 +30,8 @@ CLOSE_LEVEL = "4h"
 CLOSE_FACTOR = "sma"
 CLOSE_PERIOD = 20
 CLOSE_METHOD = "less"
+# 持仓时间，到时间强制换仓
+HOLD_TIME = "24h"
 
 # 跟踪止盈开关，跟踪比例，注意TP和SL的比例都是价格比例，
 # 如果价格波动1%，2倍杠杆，那么ROE的波动就是2%

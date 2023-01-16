@@ -360,6 +360,7 @@ def getOpenPosition(exchange):
         "marginMode": str,
         "side": str,
         "percentage": float,
+        "timestamp": float,
     })
     return op
 
@@ -909,7 +910,7 @@ def openPosition(exchangeId, markets, openPositions, openFactor, openLevel, open
     return opened
 
 
-def closePosition(exchangeId, markets, openPositions, level, factor, period, method):
+def closePosition(exchangeId, markets, openPositions, level, factor, period, method, holdTime):
     ex = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
     ex.loadMarkets()
     symbols = openPositions.index.tolist()
@@ -921,7 +922,11 @@ def closePosition(exchangeId, markets, openPositions, level, factor, period, met
     
     for symbol,df in klines.items():
         closeSig = getCloseSignal(df, factor, period, method)
-        if closeSig: willClose.append({symbol: pos[symbol]})
+        reachHoldTime = (time.time()*1000-openPositions.loc[symbol, "timestamp"])>=ex.parseTimeframe(holdTime)
+        if closeSig or reachHoldTime:
+            if reachHoldTime: logger.debug(f"{symbol}满足持仓时间平仓")
+            if closeSig: logger.debug(f"{symbol}满足closeFactor平仓")
+            willClose.append({symbol: pos[symbol]})
 
     if willClose:
         logger.debug(f"willClose: {willClose}")

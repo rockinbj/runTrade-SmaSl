@@ -33,6 +33,7 @@ def main():
     
     # 开始运行策略
     while True:
+        startTime = time.time()
         exchangId = EXCHANGE
         mkts = ex.loadMarkets()
 
@@ -47,6 +48,7 @@ def main():
             factor=CLOSE_FACTOR,
             period=CLOSE_PERIOD,
             method=CLOSE_METHOD,
+            holdTime=HOLD_TIME,
         )
         
         # 如果有平仓动作就重新检查持仓数量
@@ -83,7 +85,7 @@ def main():
             else:
                 logger.info(f"本周期无开仓币种")
                 
-
+        logger.debug(f"本轮用时:{round(time.time()-startTime, 2)}")
         # 等待下一轮
         sleepToClose(level=OPEN_LEVEL, aheadSeconds=AHEAD_SEC, test=IS_TEST, offsetSec=OFFSET_SEC)
 
