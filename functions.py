@@ -348,8 +348,8 @@ def getKlines(exchangeId, level, amount, symbols):
             k["candle_begin_time"], unit="ms"
         ) + dt.timedelta(hours=8)
         k = k[:-1]
-        if len(k) < amount:
-            logger.debug(f"{symbol}k线数量{len(k)}少于要求{amount}，跳过该币种")
+        if len(k)+1 < amount:
+            logger.debug(f"{symbol}k线数量{len(k)+1}少于要求{amount}，跳过该币种")
             continue
         klines[symbol] = k
         logger.debug(f"获取到{symbol} k线{len(k)}根")
