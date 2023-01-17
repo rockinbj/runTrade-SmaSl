@@ -35,10 +35,10 @@ HOLD_TIME = "3d"
 
 # 跟踪止盈开关，跟踪比例，注意TP和SL的比例都是价格比例，
 # 如果价格波动1%，2倍杠杆，那么ROE的波动就是2%
-ENABLE_TP = True
+ENABLE_TP = False
 TP_PERCENT = 3/100
 # 止损开关，开仓价的向下比例
-ENABLE_SL = True
+ENABLE_SL = False
 SL_PERCENT = 3/100
 # 涨幅下限，小于此空仓
 MIN_CHANGE = 0 / 100
