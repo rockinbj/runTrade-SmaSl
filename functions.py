@@ -124,11 +124,12 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             d = pos.to_dict(orient="index")
 
             msg += f"#### 账户权益 : {wal}U\n"
+            msg += f"#### 可用余额 : {bal}U\n"
             msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
             
             for k,v in d.items():
                 msg += f"""
-#### {k}
+##### {k}
  - 持仓价值(U) : {v["持仓价值(U)"]}
  - 盈亏比例(%) : {v["盈亏比例(%)"]}
  - 未实现盈亏(U) : {v["未实现盈亏(U)"]}
@@ -150,7 +151,6 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 平仓周期 : {CLOSE_PERIOD}\n"
         msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
         msg += f"#### 固定止损 : {SL_PERCENT if ENABLE_SL else 'False'}\n"
-        msg += f"#### 账户余额 : {bal}U\n"
         msg += f"#### 资金利用 : {MAX_BALANCE*100}%\n"
 
         sendMixin(msg, _type="PLAIN_POST")
@@ -839,6 +839,7 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
                 pass
             
             try:
+                
                 orders.append({
                     "symbol" : symbolId,
                     "side" : "BUY",
