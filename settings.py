@@ -1,5 +1,5 @@
 # 策略命名
-STRATEGY_NAME = "鹤V3Test"
+STRATEGY_NAME = "鹤-Sma"
 IS_TEST = False
 
 # 轮动池黑白名单,格式"BTC/USDT"
@@ -14,7 +14,7 @@ TYPE = "quoteVolume"
 TOP = 200
 
 # 选币个数
-SELECTION_NUM = 2
+SELECTION_NUM = 5
 
 # 开仓参数，4h*3，12小时涨幅排行
 OPEN_FACTOR = "signalMomentum"
@@ -31,7 +31,7 @@ CLOSE_FACTOR = "sma"
 CLOSE_PERIOD = 20
 CLOSE_METHOD = "less"
 # 持仓时间，到时间强制换仓
-HOLD_TIME = "24h"
+HOLD_TIME = "3d"
 
 # 跟踪止盈开关，跟踪比例，注意TP和SL的比例都是价格比例，
 # 如果价格波动1%，2倍杠杆，那么ROE的波动就是2%
