@@ -1041,7 +1041,6 @@ def openPosition(
     filterFactor,
     filterLevel,
     filterPeriod,
-    selectedNum,
 ):
     ex = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
     ex.loadMarkets()

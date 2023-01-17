@@ -78,7 +78,6 @@ def main():
                 filterFactor=FILTER_FACTOR,
                 filterLevel=CLOSE_LEVEL,
                 filterPeriod=CLOSE_PERIOD,
-                maxSelectNum=SELECTION_NUM,
             )
 
             if opened:
