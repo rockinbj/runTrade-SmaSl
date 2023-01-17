@@ -53,7 +53,7 @@ def main():
         
         # 如果有平仓动作就重新检查持仓数量
         if closed:
-            sendAndPrintInfo(f"本周期平仓: {closed}")
+            sendAndPrintInfo(f"{STRATEGY_NAME} 本周期平仓: {closed}")
             pos = getOpenPosition(ex)
             currentCoinNum = pos.shape[0]
         else:
@@ -81,7 +81,7 @@ def main():
             )
 
             if opened:
-                sendAndPrintInfo(f"本周期开仓: {opened}")
+                sendAndPrintInfo(f"{STRATEGY_NAME} 本周期开仓: {opened}")
             else:
                 logger.info(f"本周期无开仓币种")
                 
