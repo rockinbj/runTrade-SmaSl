@@ -19,7 +19,7 @@ SELECTION_NUM = 5
 # 开仓参数，4h*3，12小时涨幅排行
 OPEN_FACTOR = "signalMomentum"
 # FACTOR = "signalTest"
-OPEN_LEVEL = "5m"
+OPEN_LEVEL = "1h"
 OPEN_PERIOD = 12
 
 # 过滤参数，4h close>sma20
@@ -28,7 +28,7 @@ FILTER_FACTOR = "closeGtSma20"
 # 平仓参数，4h级别close小于MA20
 CLOSE_LEVEL = "4h"
 CLOSE_FACTOR = "sma"
-CLOSE_PERIOD = 20
+CLOSE_PERIOD = 30
 CLOSE_METHOD = "less"
 # 持仓时间，到时间强制换仓
 HOLD_TIME = "3d"
