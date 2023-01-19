@@ -529,7 +529,7 @@ def getOpenSignal(
 
         filterCoins = []
         for symbol, df in klines.items():
-            isOk = getFilterSignal(df, factor=filterFactor)
+            isOk = getFilterSignal(df, factor=filterFactor, period=filterPeriod)
             if isOk:
                 filterCoins.append(symbol)
 
@@ -840,13 +840,14 @@ def placeOrder(exchange, signal, markets):
     return orderList
 
 
-def getFilterSignal(df, factor):
+def getFilterSignal(df, factor, period):
     factor = factor.lower()
+    factorName = f"sma{period}"
 
-    if factor == "closegtsma20":
-        df["sma20"] = df["close"].rolling(20).mean()
+    if factor == "closegtsma":
+        df[factorName] = df["close"].rolling(period).mean()
         c1 = df.iloc[-1]["close"]
-        f1 = df.iloc[-1]["sma20"]
+        f1 = df.iloc[-1][factorName]
 
         return True if c1 > f1 else False
 

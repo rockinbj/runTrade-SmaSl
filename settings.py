@@ -22,8 +22,8 @@ OPEN_FACTOR = "signalMomentum"
 OPEN_LEVEL = "1h"
 OPEN_PERIOD = 12
 
-# 过滤参数，4h close>sma20
-FILTER_FACTOR = "closeGtSma20"
+# 过滤参数，4h close>sma
+FILTER_FACTOR = "closeGtSma"
 
 # 平仓参数，4h级别close小于MA20
 CLOSE_LEVEL = "4h"
