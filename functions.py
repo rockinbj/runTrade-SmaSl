@@ -951,7 +951,7 @@ def placeBatchOrderClose(exchange, symbols, markets):
 
 def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
     # symbols = [a,b,c]
-    balance = getBalance(exchange, symbol="USDT")["free"]
+    balance = getBalance(exchange, symbol="USDT")["free"] * MAX_BALANCE
     # 本次使用的余额=总余额/未建仓数量
     eachCash = int(balance / selectNum)
 
