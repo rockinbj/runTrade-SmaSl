@@ -1102,9 +1102,9 @@ def closePosition(
         ) >= ex.parseTimeframe(holdTime) * 1000
         if closeSig or reachHoldTime:
             if reachHoldTime:
-                logger.debug(f"{symbol}满足持仓时间平仓")
+                sendAndPrintInfo(f"{symbol}满足持仓时间平仓")
             if closeSig:
-                logger.debug(f"{symbol}满足closeFactor平仓")
+                sendAndPrintInfo(f"{symbol}满足closeFactor平仓")
             willClose.append({symbol: pos[symbol]})
 
     if willClose:
