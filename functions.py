@@ -156,14 +156,13 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             msg += "#### 当前空仓\n"
 
         msg += f"#### 轮动数量 : {TOP+len(SYMBOLS_WHITE)-len(SYMBOLS_BLACK)}\n"
-        msg += f"#### 开仓级别 : {OPEN_LEVEL}\n"
-        msg += f"#### 开仓周期 : {OPEN_PERIOD}\n"
-        msg += f"#### 涨幅门槛 : {MIN_CHANGE*100}%\n"
-        msg += f"#### 平仓级别 : {CLOSE_LEVEL}\n"
-        msg += f"#### 平仓周期 : {CLOSE_PERIOD}\n"
-        msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
+        msg += f"#### 开仓因子 : {OPEN_LEVEL}*{OPEN_PERIOD}\n"
+        msg += f"#### 过滤因子1 : {FILTER_FACTOR}{CLOSE_PERIOD}\n"
+        msg += f"#### 过滤因子2 : Increase>{MIN_CHANGE*100}%\n"
+        msg += f"#### 平仓因子 : {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
         msg += f"#### 固定止损 : {SL_PERCENT if ENABLE_SL else 'False'}\n"
-        msg += f"#### 资金利用 : {MAX_BALANCE*100}%\n"
+        msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
+        msg += f"#### 资金限额 : {MAX_BALANCE*100}%\n"
 
         sendMixin(msg, _type="PLAIN_POST")
 
