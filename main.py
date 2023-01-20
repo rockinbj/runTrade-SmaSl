@@ -1,3 +1,4 @@
+# this is code for offset branch
 import time
 from functools import partial
 from importlib import reload
@@ -34,14 +35,14 @@ def main():
     # 开始运行策略
     while True:
         startTime = time.time()
-        exchangId = EXCHANGE
+        exchangeId = EXCHANGE
         mkts = ex.loadMarkets()
 
         # 先检查是否有需要平仓的
         pos = getOpenPosition(ex)
         logger.info(f"当前持仓币种: {pos.index.tolist()}")
         closed = closePosition(
-            exchangeId=exchangId,
+            exchangeId=exchangeId,
             markets=mkts,
             openPositions=pos,
             level=CLOSE_LEVEL,
@@ -69,7 +70,7 @@ def main():
         # 如果当前持仓小于选币数量，则选币做多
         if currentCoinNum < needCoinNum:
             opened = openPosition(
-                exchangeId=exchangId,
+                exchangeId=exchangeId,
                 markets=mkts,
                 openPositions=pos,
                 openFactor=OPEN_FACTOR,
