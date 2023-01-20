@@ -485,6 +485,7 @@ def getOpenSignal(
 
     # 每个币种计算因子列
     for symbol, df in klines.items():
+        if (df is None) or df.empty or len(df)<selectPeriod: continue
         logger.debug(symbol)
         # 计算因子列
         df = getattr(signals, selectFactor)(df, selectPeriod)
