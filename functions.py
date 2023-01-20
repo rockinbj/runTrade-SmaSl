@@ -973,7 +973,7 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
 
             try:
                 if eachCash <= 5:
-                    sendAndPrintInfo(f"{symbol}下单金额小于5U，跳过")
+                    sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}下单金额小于5U，跳过")
                     continue
                 orders.append(
                     {
