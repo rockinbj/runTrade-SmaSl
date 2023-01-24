@@ -1,6 +1,6 @@
 # 策略命名
-STRATEGY_NAME = "鹤-Sma"
-IS_TEST = False
+STRATEGY_NAME = "鹤-Sma-Test"
+IS_TEST = True
 
 # 轮动池黑白名单,格式"BTC/USDT"
 SYMBOLS_WHITE = []
@@ -11,10 +11,10 @@ SYMBOLS_BLACK = ["BTCDOM/USDT", "DEFI/USDT", "BLUEBIRD/USDT"]
 # 只选取USDT交易对的成交量topN
 RULE = "/USDT"
 TYPE = "quoteVolume"
-TOP = 200
+TOP = 10
 
 # 选币个数
-SELECTION_NUM = 5
+SELECTION_NUM = 1
 
 # 开仓参数，4h*3，12小时涨幅排行
 OPEN_FACTOR = "signalMomentum"
@@ -22,16 +22,21 @@ OPEN_FACTOR = "signalMomentum"
 OPEN_LEVEL = "1h"
 OPEN_PERIOD = 12
 
-# 过滤参数，4h close>sma
-FILTER_FACTOR = "closeGtSma"
+# 过滤因子，涨幅下限，小于此则排除
+FILTER_FACTOR_1 = 0 / 100
+# 过滤因子，4h close>sma
+FILTER_FACTOR_2 = "closeGtSma"
+
 
 # 平仓参数，4h级别close小于MA20
 CLOSE_LEVEL = "4h"
-CLOSE_FACTOR = "sma"
+CLOSE_FACTOR = "signalSma"
 CLOSE_PERIOD = 30
 CLOSE_METHOD = "less"
-# 持仓时间，到时间强制换仓
-HOLD_TIME = "3d"
+
+# 持仓时间，间隔offset
+HOLD_TIME = "4h"
+OFFSET_LIST = [0,1,2,3]
 
 # 跟踪止盈开关，跟踪比例，注意TP和SL的比例都是价格比例，
 # 如果价格波动1%，2倍杠杆，那么ROE的波动就是2%

@@ -27,68 +27,93 @@ def reporter(exchangeId, interval):
 
 def main():
     ex = getattr(ccxt, EXCHANGE)(EXCHANGE_CONFIG)
+    exId = EXCHANGE
 
     # 开启一个非阻塞的报告进程
     rptpool = Pool(1)
     rptpool.apply_async(reporter, args=(EXCHANGE, REPORT_INTERVAL))
-    
+
     # 开始运行策略
     while True:
-        startTime = time.time()
-        exchangeId = EXCHANGE
+        # 获取币池列表
         mkts = ex.loadMarkets()
 
-        # 先检查是否有需要平仓的
-        pos = getOpenPosition(ex)
-        logger.info(f"当前持仓币种: {pos.index.tolist()}")
-        closed = closePosition(
-            exchangeId=exchangeId,
-            markets=mkts,
-            openPositions=pos,
-            level=CLOSE_LEVEL,
-            factor=CLOSE_FACTOR,
-            period=CLOSE_PERIOD,
-            method=CLOSE_METHOD,
-            holdTime=HOLD_TIME,
+        # 等待下一轮开始，获取下一轮运行时间
+        runtime = sleepToClose(
+                level=OPEN_LEVEL,
+                aheadSeconds=AHEAD_SEC,
+                test=IS_TEST,
+                offsetSec=OFFSET_SEC,
         )
-        
-        # 如果有平仓动作就重新检查持仓数量
-        if closed:
-            sendAndPrintInfo(f"{STRATEGY_NAME} 本周期平仓: {closed}")
-            pos = getOpenPosition(ex)
-            currentCoinNum = pos.shape[0]
-        else:
-            logger.info(f"本周期无平仓币种")
-        
-        # 检查当前持仓状态
-        pos = getOpenPosition(ex)
-        currentCoinNum = pos.shape[0]
-        needCoinNum = reload(settings).SELECTION_NUM
-        logger.info(f"当前持仓币种: {pos.index.tolist()}")
-        logger.info(f"当前持币: {currentCoinNum}, 选币数量: {needCoinNum}")
 
-        # 如果当前持仓小于选币数量，则选币做多
-        if currentCoinNum < needCoinNum:
-            opened = openPosition(
-                exchangeId=exchangeId,
-                markets=mkts,
-                openPositions=pos,
+        # 从币池列表中按照TYPE排序，取topN
+        tickers = getTickers(exchange=ex)
+        symbols = getTopN(
+            tickers=tickers,
+            rule=RULE,
+            _type=TYPE,
+            n=TOP,
+        )
+        _n = "\n"
+        logger.info(f"币池列表共 {len(symbols)}:\n{_n.join(symbols)}")
+
+        # 获取topN币种的k线数据
+        klinesDict = getKlines(
+            exchangeId=exId,
+            level=OPEN_LEVEL,
+            amount=OPEN_PERIOD+len(OFFSET_LIST),
+            symbols=symbols
+        )
+        logger.info(f"共获取合格的k线数据 {len(klinesDict)}")
+
+        # 计算开仓和平仓因子
+        klinesDict = setFactor(
+                exchangeId=exId,
+                klinesDf=klinesDict,
                 openFactor=OPEN_FACTOR,
-                openLevel=OPEN_LEVEL,
                 openPeriod=OPEN_PERIOD,
-                filterFactor=FILTER_FACTOR,
-                filterLevel=CLOSE_LEVEL,
-                filterPeriod=CLOSE_PERIOD,
-            )
+                closeFactor=CLOSE_FACTOR,
+                closeLevel=CLOSE_LEVEL,
+                closePeriod=CLOSE_PERIOD,
+        )
+        logger.debug(f"计算开仓平仓因子结果:\n{klinesDict}")
 
-            if opened:
-                sendAndPrintInfo(f"{STRATEGY_NAME} 本周期开仓: {opened}")
-            else:
-                logger.info(f"本周期无开仓币种")
-                
-        logger.debug(f"本轮用时:{round(time.time()-startTime, 2)}")
-        # 等待下一轮
-        sleepToClose(level=OPEN_LEVEL, aheadSeconds=AHEAD_SEC, test=IS_TEST, offsetSec=OFFSET_SEC)
+        # 计算offset
+        klinesDf = setOffset(
+                klinesDict=klinesDict,
+                holdTime=HOLD_TIME,
+                offsetList=OFFSET_LIST,
+                runtime=runtime,
+        )
+        logger.debug(f"计算offset结果:\n{klinesDict}")
+
+        # 每个offset计算选币结果
+        chosen = getChosen(
+                klinesDf=klinesDf,
+                filterFactor1=FILTER_FACTOR_1,
+                filterFactor2=FILTER_FACTOR_2,
+                selectNum=SELECTION_NUM,
+        )
+        logger.info(f"计算每个offset选币结果:\n{chosen}")
+
+        # 计算目标持仓
+        balance = getBalance(exchange=ex, symbol="usdt")["free"]
+        logger.info(f"当前可用资金共: {balance}")
+        posAim = getPosAim(
+                chosen=chosen,
+                balance=balance,
+                leverage=LEVERAGE,
+                offsetList=OFFSET_LIST,
+                selectNum=SELECTION_NUM,
+        )
+        logger.info(f"目标持仓:\n{posAim}")
+
+        # 获取当前持仓
+        posNow = getOpenPosition(exchange=ex)
+        # 目标持仓与当前持仓合并，成为交易信号
+        sig = getSignal(posAim, posNow)
+        logger.info(f"交易信号:\n{sig}")
+
 
 
 if __name__ == "__main__":

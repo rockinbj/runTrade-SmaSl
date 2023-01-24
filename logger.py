@@ -1,4 +1,6 @@
 import logging
+import sys
+
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 from os import path
 
@@ -18,7 +20,7 @@ strFmt = "%(asctime)s|%(name)-10s:%(lineno)4d|%(processName)-12s|%(levelname)-8s
 logFmt = logging.Formatter(strFmt)
 
 # 定义屏幕输出
-hConsole = logging.StreamHandler()
+hConsole = logging.StreamHandler(stream=sys.stdout)
 hConsole.setLevel(LOG_LEVEL_CONSOLE)
 hConsole.setFormatter(logFmt)
 

@@ -14,19 +14,13 @@ logger = logging.getLogger("app.sig")
 # 计算周期内的涨幅
 # 例如20日涨幅
 def signalMomentum(df, para=20):
-    name = "signalMomentum"
     n = para
-    df[name] = df["close"].pct_change(periods=n)
-
-    return df
+    return df["close"].pct_change(periods=n)
 
 
 def signalSma(df, para):
-    name = "sma"
     n = para
-    df[name] = df["close"].rolling(n).mean()
-
-    return df
+    return df["close"].rolling(n).mean()
 
 
 def signalTest(df, para):
