@@ -91,4 +91,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main()
+        except Exception as e:
+            sendAndPrintError(f"遇到意外报错，程序跳过本轮执行，请尽快检查{e}")
+            logger.exception(e)
+            continue
