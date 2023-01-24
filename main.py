@@ -95,6 +95,6 @@ if __name__ == "__main__":
         try:
             main()
         except Exception as e:
-            sendAndPrintError(f"遇到意外报错，程序跳过本轮执行，请尽快检查{e}")
+            sendAndPrintError(f"{STRATEGY_NAME} 遇到意外报错，程序进入下一轮。{e}")
             logger.exception(e)
             continue

@@ -40,7 +40,7 @@ def callAlarm(strategyName=STRATEGY_NAME, content="存在严重风险项，请�
     try:
         r = requests.post(url + para)
         if r.json()["result"] != "success":
-            sendAndPrintError(f"电话告警触发失败，可能有严重风险，请立即检查！{r.text}")
+            sendAndPrintError(f"{STRATEGY_NAME} 电话告警触发失败，可能有严重风险，请立即检查！{r.text}")
     except Exception as e:
         logger.error(f"电话告警触发失败，可能有严重风险，请立即检查！{e}")
         logger.exception(e)
@@ -922,7 +922,7 @@ def placeBatchOrderClose(exchange, symbols, markets):
             responsesTotal += response
 
         except Exception as e:
-            sendAndCritical(e)
+            sendAndCritical(f"{STRATEGY_NAME} {e}")
             logger.exception(e)
 
     for index, r in enumerate(responsesTotal):
@@ -939,7 +939,7 @@ def placeBatchOrderClose(exchange, symbols, markets):
                     break
                 else:
                     if i == MAX_TRY - 1:
-                        sendAndCritical(f"{r['symbol']}平仓查询三次仍不成功，请检查")
+                        sendAndCritical(f"{STRATEGY_NAME} {r['symbol']}平仓查询三次仍不成功，请检查")
                         break
             else:
                 sendAndCritical(
@@ -1008,7 +1008,7 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
             responsesTotal += response
 
         except Exception as e:
-            sendAndCritical(e)
+            sendAndCritical(f"{STRATEGY_NAME} {e}")
             logger.exception(e)
 
     for index, r in enumerate(responsesTotal):
@@ -1025,7 +1025,7 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
                     break
                 else:
                     if i == MAX_TRY - 1:
-                        sendAndCritical(f"{r['symbol']}买入单查询三次仍不成功，请检查")
+                        sendAndCritical(f"{STRATEGY_NAME} {r['symbol']}买入单查询三次仍不成功，请检查")
                         break
             else:
                 sendAndCritical(
