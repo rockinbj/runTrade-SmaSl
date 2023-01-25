@@ -631,8 +631,8 @@ def getOpenPosition(exchange):
             "timestamp": float,
         }
     )
-    op = op[["contracts", "notional", "percentage", "unrealizedPnl", "entryPrice", "markPrice",
-             "liquidationPrice", "side", "leverage", "timestamp", "marginType"]]
+    op = op[["contracts", "notional", "percentage", "unrealizedPnl", "leverage", "entryPrice", "markPrice",
+             "liquidationPrice", "side", "marginType", "timestamp"]]
     return op
 
 
