@@ -1,12 +1,9 @@
-import datetime as dt
-import time
-import math
-from functools import reduce
+import json
 from functools import partial
-from multiprocessing import Pool, cpu_count, current_process
+from functools import reduce
+from multiprocessing import Pool, cpu_count
 
 import ccxt
-import numpy as np
 import pandas as pd
 import requests
 from tenacity import *
@@ -16,6 +13,7 @@ from exchangeConfig import *
 from logger import *
 from settings import *
 
+
 # pd.set_option('expand_frame_repr', False)  # 当列太多时不换行
 # pd.set_option('display.max_rows', 5000)  # 最多显示数据的行数
 pd.set_option("display.unicode.ambiguous_as_wide", True)
@@ -23,13 +21,34 @@ pd.set_option("display.unicode.east_asian_width", True)
 logger = logging.getLogger("app.func")
 
 
+def retryIt(fun, paras={}, retryTimes=MAX_TRY, retryWaitFor=RETRY_WAIT, critical=False):
+    for i in range(retryTimes):
+        try:
+            r = fun(params=paras)
+            return r
+        except ccxt.MarginModeAlreadySet:
+            pass
+        except Exception as e:
+            logger.error(f"{fun.__name__}报错, retryIt()即将在{retryWaitFor}秒后重试{i}次: {e}")
+            logger.exception(e)
+            time.sleep(retryWaitFor)
+            if i == retryTimes - 1:
+                f = f"{STRATEGY_NAME} {fun.__name__} retryIt()重试{retryTimes}次无效, 请检查日志。程序提交异常。{e}"
+                if critical:
+                    sendAndCritical("！严重级别告警！" + f)
+                else:
+                    sendAndPrintError(f)
+                raise RuntimeError(f"{fun.__name__} {e}")
+            continue
+
+
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
-def callAlarm(strategyName=STRATEGY_NAME, content="存在严重风险项，请立即检查"):
+def callAlarm(strategyName=STRATEGY_NAME, content="存在严重风险项, 请立即检查"):
     url = "http://api.aiops.com/alert/api/event"
     apiKey = "66e6aeab4218431f8afe7e76ac96c38e"
     eventId = str(int(time.time()))
@@ -40,25 +59,25 @@ def callAlarm(strategyName=STRATEGY_NAME, content="存在严重风险项，请�
     try:
         r = requests.post(url + para)
         if r.json()["result"] != "success":
-            sendAndPrintError(f"电话告警触发失败，可能有严重风险，请立即检查！{r.text}")
+            sendAndPrintError(f"电话告警触发失败, 可能有严重风险, 请立即检查！{r.text}")
     except Exception as e:
-        logger.error(f"电话告警触发失败，可能有严重风险，请立即检查！{e}")
+        logger.error(f"电话告警触发失败, 可能有严重风险, 请立即检查！{e}")
         logger.exception(e)
 
 
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def sendMixin(msg, _type="PLAIN_TEXT"):
     token = MIXIN_TOKEN
     url = f"https://webhook.exinwork.com/api/send?access_token={token}"
 
     value = {
-            'category': _type,
-            'data': msg,
+        'category': _type,
+        'data': msg,
     }
 
     try:
@@ -109,28 +128,28 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         if pos.shape[0] > 0:
             pos = pos[
                 [
-                        "notional",
-                        "percentage",
-                        "unrealizedPnl",
-                        "entryPrice",
-                        "markPrice",
-                        "liquidationPrice",
-                        "datetime",
-                        "leverage",
+                    "notional",
+                    "percentage",
+                    "unrealizedPnl",
+                    "entryPrice",
+                    "markPrice",
+                    "liquidationPrice",
+                    "datetime",
+                    "leverage",
                 ]
             ]
             pos.rename(
-                    columns={
-                            "notional": "持仓价值(U)",
-                            "percentage": "盈亏比例(%)",
-                            "unrealizedPnl": "未实现盈亏(U)",
-                            "entryPrice": "开仓价格(U)",
-                            "markPrice": "标记价格(U)",
-                            "liquidationPrice": "爆仓价格(U)",
-                            "datetime": "开仓时间",
-                            "leverage": "杠杆倍数",
-                    },
-                    inplace=True,
+                columns={
+                    "notional": "持仓价值(U)",
+                    "percentage": "盈亏比例(%)",
+                    "unrealizedPnl": "未实现盈亏(U)",
+                    "entryPrice": "开仓价格(U)",
+                    "markPrice": "标记价格(U)",
+                    "liquidationPrice": "爆仓价格(U)",
+                    "datetime": "开仓时间",
+                    "leverage": "杠杆倍数",
+                },
+                inplace=True,
             )
             pos.sort_values(by="盈亏比例(%)", ascending=False, inplace=True)
             d = pos.to_dict(orient="index")
@@ -157,8 +176,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
 
         msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
         msg += f"#### 开仓因子 : {OPEN_LEVEL}*{OPEN_PERIOD}\n"
-        msg += f"#### 过滤因子1 : {FILTER_FACTOR_2}{CLOSE_PERIOD}\n"
-        msg += f"#### 过滤因子2 : Increase>{MIN_CHANGE * 100}%\n"
+        # msg += f"#### 过滤因子 : {OPEN_FACTOR}>{FF_1_BASE * 100}%\n"
         msg += f"#### 平仓因子 : {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
         msg += f"#### 固定止损 : {SL_PERCENT if ENABLE_SL else 'False'}\n"
         msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
@@ -176,8 +194,8 @@ def secondsToNext(exchange, level):
 
 
 def nextStartTime(level, ahead_seconds=3, offsetSec=0):
-    # ahead_seconds为预留秒数，
-    # 当离开始时间太近，本轮可能来不及下单，因此当离开始时间的秒数小于预留秒数时，
+    # ahead_seconds为预留秒数, 
+    # 当离开始时间太近, 本轮可能来不及下单, 因此当离开始时间的秒数小于预留秒数时, 
     # 就直接顺延至下一轮开始
     if level.endswith('m') or level.endswith('h'):
         pass
@@ -190,7 +208,7 @@ def nextStartTime(level, ahead_seconds=3, offsetSec=0):
 
     ti = pd.to_timedelta(level)
     now_time = dt.datetime.now()
-    # now_time = dt.datetime(2019, 5, 9, 23, 50, 30)  # 修改now_time，可用于测试
+    # now_time = dt.datetime(2019, 5, 9, 23, 50, 30)  # 修改now_time, 可用于测试
     this_midnight = now_time.replace(hour=0, minute=0, second=0, microsecond=0)
     min_step = dt.timedelta(minutes=1)
 
@@ -203,7 +221,7 @@ def nextStartTime(level, ahead_seconds=3, offsetSec=0):
                 delta.seconds % ti.seconds == 0
                 and (target_time - now_time).seconds >= ahead_seconds
         ):
-            # 当符合运行周期，并且目标时间有足够大的余地，默认为60s
+            # 当符合运行周期, 并且目标时间有足够大的余地, 默认为60s
             break
 
     target_time -= dt.timedelta(seconds=offsetSec)
@@ -212,7 +230,7 @@ def nextStartTime(level, ahead_seconds=3, offsetSec=0):
 
 def sleepToClose(level, aheadSeconds, test=False, offsetSec=0):
     nextTime = nextStartTime(level, ahead_seconds=aheadSeconds, offsetSec=offsetSec)
-    logger.info(f"等待下一轮开始,开始时间: {nextTime}")
+    logger.info(f"等待开始时间: {nextTime}")
     if test is False:
         time.sleep(max(0, (nextTime - dt.datetime.now()).seconds))
         while True:  # 在靠近目标时间时
@@ -223,10 +241,10 @@ def sleepToClose(level, aheadSeconds, test=False, offsetSec=0):
 
 
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def getMarkets(markets):
     try:
@@ -234,14 +252,14 @@ def getMarkets(markets):
         return mks
     except Exception as e:
         logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getMarkets()错误，程序退出。{e}")
+        sendAndRaise(f"{STRATEGY_NAME}: getMarkets()错误, 程序退出。{e}")
 
 
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def getTickers(exchange):
     try:
@@ -250,14 +268,23 @@ def getTickers(exchange):
         return tk
     except Exception as e:
         logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getTickers()错误，程序退出。{e}")
+        sendAndRaise(f"{STRATEGY_NAME}: getTickers()错误, 程序退出。{e}")
+
+
+def getPrices(exchange):
+    # 获取所有币种的ticker数据
+    tickers = retryIt(exchange.fapiPublic_get_ticker_price)
+    tickers = pd.DataFrame(tickers)
+    tickers.set_index('symbol', inplace=True)
+    tickers = tickers.astype({"price": float}, copy=True)
+    return tickers['price']
 
 
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def getTicker(exchange, markets, symbol):
     try:
@@ -265,38 +292,38 @@ def getTicker(exchange, markets, symbol):
         tk = exchange.fapiPublicGetTickerBookticker({"symbol": symbolId})
         tk = pd.DataFrame(tk, index=[0])
         tk = tk.astype(
-                {
-                        "bidPrice": float,
-                        "bidQty": float,
-                        "askPrice": float,
-                        "askQty": float,
-                }
+            {
+                "bidPrice": float,
+                "bidQty": float,
+                "askPrice": float,
+                "askQty": float,
+            }
         )
         # symbol  bidPrice bidQty  askPrice  askQty           time
         # 0  BTCUSDT  20896.70  6.719  20896.80  12.708  1673800340925
         return tk
     except Exception as e:
         logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getTicker()错误，程序退出。{e}")
+        sendAndRaise(f"{STRATEGY_NAME}: getTicker()错误, 程序退出。{e}")
 
 
 def getTopN(tickers, rule="/USDT", _type="quoteVolume", n=50):
     tickers["timestamp"] = pd.to_datetime(tickers["timestamp"], unit="ms")
     tickers = tickers.filter(like=rule, axis=0)
     r = (
-            tickers.set_index("timestamp")
-            .sort_index()
-            .last("24h")
-            .nlargest(n, _type)["symbol"]
+        tickers.set_index("timestamp")
+        .sort_index()
+        .last("24h")
+        .nlargest(n, _type)["symbol"]
     )
     return list(r)
 
 
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def getBalances(exchange):
     # positions:
@@ -315,43 +342,44 @@ def getBalances(exchange):
         return total, balances, positions
     except Exception as e:
         logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getBalances()错误，程序退出。{e}")
+        sendAndRaise(f"{STRATEGY_NAME}: getBalances()错误, 程序退出。{e}")
 
 
-def getBalance(exchange, symbol="usdt"):
-    symbol = symbol.upper()
-    b = exchange.fetchBalance()[symbol]
-    # b = {'free': 18.89125761, 'used': 27.08454256, 'total': 45.97736273}
-    return b
+def getBalance(exchange, asset="usdt"):
+    asset = asset.upper()
+    r = exchange.fapiPrivateGetAccount()["assets"]
+    r = pd.DataFrame(r)
+    bal = float(r.loc[r["asset"] == asset, "walletBalance"])
+    return bal
 
 
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def getKlines(exchangeId, level, amount, symbols):
-    # getKlines要在子进程里使用，进程之间不能直接传递ccxt实例，因此只能在进程内部创建实例
+    # getKlines要在子进程里使用, 进程之间不能直接传递ccxt实例, 因此只能在进程内部创建实例
     exchange = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
     amount += NEW_KLINE_NUM
-    klines = dict.fromkeys(symbols, None)
+    klines = {}
 
     for symbol in symbols:
         k = exchange.fetchOHLCV(symbol, level, limit=amount)
         k = pd.DataFrame(
-                k, columns=["candle_begin_time", "open", "high", "low", "close", "volume"]
+            k, columns=["candle_begin_time", "open", "high", "low", "close", "volume"]
         )
         k.drop_duplicates(subset=["candle_begin_time"], keep="last", inplace=True)
         k.sort_values(by="candle_begin_time", inplace=True)
         k["candle_begin_time"] = pd.to_datetime(
-                k["candle_begin_time"], unit="ms"
+            k["candle_begin_time"], unit="ms"
         ) + dt.timedelta(hours=8)
         k = k[:-1]
         if len(k) + 1 < amount:
-            logger.debug(f"{symbol}k线数量{len(k) + 1}少于要求{amount}，跳过该币种")
+            logger.debug(f"{symbol}k线数量{len(k) + 1}少于要求{amount}, 剔除该币种")
             continue
-        k = k[["candle_begin_time", "close"]]
+        # k = k[["candle_begin_time", "close"]]
         klines[symbol] = k
         logger.debug(f"获取到{symbol} k线{len(k)}根")
 
@@ -361,19 +389,17 @@ def getKlines(exchangeId, level, amount, symbols):
     return klines
 
 
-def getKlineForSymbol(exchangeId, level, amount, symbol):
-    # getKlines要在子进程里使用，进程之间不能直接传递ccxt实例，因此只能在进程内部创建实例
-    exchange = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
+def getKlineForSymbol(exchange, level, amount, symbol):
     amount += NEW_KLINE_NUM
 
     k = exchange.fetchOHLCV(symbol, level, limit=amount)
     k = pd.DataFrame(
-            k, columns=["candle_begin_time", "open", "high", "low", "close", "volume"]
+        k, columns=["candle_begin_time", "open", "high", "low", "close", "volume"]
     )
     k.drop_duplicates(subset=["candle_begin_time"], keep="last", inplace=True)
     k.sort_values(by="candle_begin_time", inplace=True)
     k["candle_begin_time"] = pd.to_datetime(
-            k["candle_begin_time"], unit="ms"
+        k["candle_begin_time"], unit="ms"
     ) + dt.timedelta(hours=8)
     k = k[:-1]
 
@@ -383,15 +409,65 @@ def getKlineForSymbol(exchangeId, level, amount, symbol):
     return k
 
 
+def getKlinesMulProc(exchangeId, symbols, level, amount):
+    singleGetKlines = partial(getKlines, exchangeId, level, amount)
+    pNum = min(cpu_count(), len(symbols))
+    logger.debug(f"开启{pNum}线程获取k线")
+    with Pool(processes=pNum) as pool:
+        kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
+        kNew = [i for i in kNew if i]  # 去空
+    klinesDict = {list(i.keys())[0]: list(i.values())[0] for i in kNew}
+
+    return klinesDict
+
+
+def resampleKlines(df, level):
+    level = level.upper()
+    if not (level.endswith("M")
+            or level.endswith("H")
+            or level.endswith("D")
+            or level.endswith("T")):
+        e = "周期格式不正确，退出。应当以M(T)、H、D结尾。"
+        logger.error(e)
+        raise RuntimeError(e)
+
+    level = level.replace("M", "T")
+    dfNew = df.resample(
+        rule=level,
+        on="candle_begin_time",
+        label="left",
+        closed="left"
+        ).agg(
+        {
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+            "volume": "sum",
+        }
+    )
+
+    # 整理数据，很重要！可以避免后面出现的各种花式错误
+    # 剔除掉原始数据中可能出现的空白数据
+    dfNew.dropna(subset=["open"], inplace=True)
+    dfNew = dfNew[dfNew["volume"] > 0]
+    dfNew.reset_index(inplace=True)
+    dfNew.drop_duplicates(subset="candle_begin_time", ignore_index=True, inplace=True)
+    dfNew.sort_values(by="candle_begin_time", inplace=True)
+    dfNew.reset_index(drop=True, inplace=True)
+
+    return dfNew
+
+
 def combineK(kHistory, kNew):
     if kHistory.keys() != kNew.keys():
-        sendAndRaise(f"{STRATEGY_NAME}: combineK()报错：历史k线与最新k线的symbols不一致，请检查。退出。")
+        sendAndRaise(f"{STRATEGY_NAME}: combineK()报错：历史k线与最新k线的symbols不一致, 请检查。退出。")
 
     kAll = dict.fromkeys(kHistory.keys())
     for symbol in kHistory.keys():
         kAll[symbol] = pd.concat([kHistory[symbol], kNew[symbol]], ignore_index=True)
         kAll[symbol].drop_duplicates(
-                subset="candle_begin_time", keep="last", inplace=True
+            subset="candle_begin_time", keep="last", inplace=True
         )
         kAll[symbol].sort_values(by="candle_begin_time", inplace=True)
         kAll[symbol].reset_index(drop=True, inplace=True)
@@ -399,59 +475,64 @@ def combineK(kHistory, kNew):
     return kAll
 
 
-def setOffset(klinesDict: dict, holdTime, offsetList, runtime):
-    # holdTime = "4h" --> 4
-    holdTime = int(holdTime[:-1])
-    dfOffset = pd.DataFrame()
+def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
+    # holdTime: "4h"
+    # level: "1h"
+    holdHourSec = exchange.parseTimeframe(holdHour)
+    openLevelSec = exchange.parseTimeframe(openLevel)
+    df = df.copy()
+    df["offset"] = df["candle_begin_time"].astype("int64") // 10 ** 9 % holdHourSec // openLevelSec
+    df = df.loc[df["offset"].isin(offsetList)]
+    df.sort_values(by="candle_begin_time", inplace=True)
+    # 如果是测试, 执行时间在等待时间点之前, 为了校正offset, hh要+1, 
+    # 如果是真实执行, 执行时间在时间点之后, hh不用+1
+    holdHourSec += openLevelSec if IS_TEST else 0
+    df = df[df["candle_begin_time"] >= (runtime - dt.timedelta(seconds=holdHourSec))]
+
+    return df
+
+
+def setFilter(kDict, _filters):
+    kNew = {}
+    for symbol, df in kDict.items():
+        result = True
+        for fName, fParas in _filters.items():
+            _cls = __import__("filters")
+            r = getattr(_cls, fName)(df, fParas)
+            if r == False:
+                result = False
+                logger.debug(f"{symbol}不符合 {fName} 被剔除")
+                break
+        if result is True:
+            kNew[symbol] = kDict[symbol]
+
+    return kNew
+
+
+def setFactor(klinesDict: dict, openFactor, openPeriod):
+    kDf = pd.DataFrame()
     for symbol, df in klinesDict.items():
         df["symbol"] = symbol
-        df["offset"] = df["candle_begin_time"].dt.hour % holdTime
-        dfOffset = pd.concat([df, dfOffset], ignore_index=True)
-
-    dfOffset.sort_values(by="candle_begin_time", inplace=True)
-    holdTime += 1 if IS_TEST else 0
-    dfOffset = dfOffset[dfOffset["candle_begin_time"] >= (runtime - dt.timedelta(hours=holdTime))]
-
-    return dfOffset
-
-
-def setFactor(exchangeId, klinesDf: dict, openFactor, openPeriod, closeFactor, closeLevel, closePeriod):
-    for symbol, df in klinesDf.items():
         # 计算开仓factor
-        # nameOF = f"pctChang{openPeriod}"
         nameOF = f"openFactor"
         df[nameOF] = getattr(signals, openFactor)(df, openPeriod)
-        # 计算止损因子，通常止损因子的周期与开仓因子不同，需要重新获取k线
-        # nameCF = f"sma{closePeriod}"
-        nameCF = f"closeFactor"
-        dfCloseLevel = getKlineForSymbol(exchangeId, closeLevel, closePeriod, symbol)
-        dfCloseLevel[nameCF] = getattr(signals, closeFactor)(dfCloseLevel, closePeriod)
-        # 将止损因子加入开仓因子k线中
-        df = pd.merge(df, dfCloseLevel[["candle_begin_time", nameCF]], how="left", on="candle_begin_time")
-        df[nameCF].fillna(method="ffill", inplace=True)
-        df.dropna(subset=nameOF, inplace=True)
-        klinesDf[symbol] = df
+        kDf = pd.concat([kDf, df], ignore_index=True)
+        time.sleep(0.01)
 
-    return klinesDf
+    return kDf
 
 
-def getChosen(klinesDf: pd.DataFrame, filterFactor1, filterFactor2, selectNum):
-    # 先用过滤因子将不符合的k线去掉
-    filter1, filter2 = True, True
-    filter1 = klinesDf["openFactor"] > filterFactor1
-    if filterFactor2 == "closeGtSma":
-        filter2 = klinesDf["close"] > klinesDf["closeFactor"]
-    klinesDf = klinesDf.loc[filter1 & filter2].copy()
-    logger.debug(f"符合filterFactor的结果: {set(klinesDf['symbol'].tolist())}")
+def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
     # 选币因子排名
     if not klinesDf.empty:
-        klinesDf["rank"] = klinesDf.groupby("offset")["openFactor"].rank(ascending=False)
-        klinesDf.sort_values(by=["candle_begin_time","rank"], inplace=True)
+        klinesDf["rank"] = klinesDf.groupby("candle_begin_time")["openFactor"].rank(ascending=False)
+        klinesDf.sort_values(by=["candle_begin_time", "rank"], inplace=True)
+        logger.debug(f"选币排名过程:\n{klinesDf}")
 
         g = klinesDf.groupby("candle_begin_time")
         chosenLong = g.head(selectNum).copy()
         chosenLong["side"] = 1
-        chosenLong = chosenLong[["candle_begin_time", "offset", "symbol", "side", "close"]]
+        chosenLong = chosenLong[["candle_begin_time", "symbol", "side", "close"]]
         return chosenLong
         # chosenShort = g.tail(selectNum)
         # chosenShort["side"] = -1
@@ -468,7 +549,7 @@ def getPosAim(chosen: pd.DataFrame, balance, leverage, offsetList, selectNum):
     # 计算每offset应当持有的币种数量
     chosen["amount"] = eachCost / chosen["close"] * chosen["side"]
     logger.debug(f"每个offset应当持仓数量:\n{chosen}")
-    # 合并所有offset应当持有的币种数量，计算出目标仓位
+    # 合并所有offset应当持有的币种数量, 计算出目标仓位
     df = chosen.groupby("symbol")[["amount"]].sum()
     df.index.name = None
     return df
@@ -477,22 +558,44 @@ def getPosAim(chosen: pd.DataFrame, balance, leverage, offsetList, selectNum):
 def getSignal(posAim: pd.DataFrame, posNow: pd.DataFrame):
     # 获取当前持仓
     posNow = posNow[["contracts", "timestamp"]].copy()
-    posNow.rename(columns={"contracts":"amount"}, inplace=True)
+    posNow.rename(columns={"contracts": "amount"}, inplace=True)
     logger.debug(f"当前持仓:\n{posNow}")
     # 合并当前持仓和目标持仓
-    pos = pd.merge(posNow, posAim, how="outer", suffixes=("Now","Aim"), left_index=True, right_index=True)
+    pos = pd.merge(posNow, posAim, how="outer", suffixes=("Now", "Aim"), left_index=True, right_index=True)
     pos.fillna(value=0, inplace=True)
     logger.debug(f"当前持仓与目标持仓合并后:\n{pos}")
     # 合并持仓生成交易信号
-    sig = pd.DataFrame(pos["amountAim"] - pos["amountNow"], columns=["amount"])
+    sig = pd.DataFrame(pos["amountAim"] - pos["amountNow"], columns=["amount"]).sort_values(by="amount")
     return sig
 
 
+def checkStoploss(exchange, markets, posNow: pd.DataFrame, closeFactor, closeLevel, closePeriod, closeMethod):
+    pos = posNow.copy()
+    symbols = pos.index.tolist()
+    kDict = getKlinesMulProc(
+        exchangeId=exchange.id,
+        symbols=symbols,
+        level=closeLevel,
+        amount=closePeriod,
+    )
+    # 检查每个币种是否满足closeFactor的止损条件
+    for symbol, df in kDict.items():
+        df["symbol"] = symbol
+        df["closeFactor"] = getattr(signals, closeFactor)(df, closePeriod)
+
+        if closeMethod == "less":
+            if df.iloc[-1]["close"] < df.iloc[-1]["closeFactor"]:
+                closePositionForce(exchange, markets, posNow, symbol)
+                sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}满足closeFactor已平仓")
+        elif closeMethod == "XXX":
+            pass
+
+
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def getPositions(exchange):
     # positions:
@@ -505,50 +608,52 @@ def getPositions(exchange):
         return p
     except Exception as e:
         logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getPositions()错误，程序退出。{e}")
+        sendAndRaise(f"{STRATEGY_NAME}: getPositions()错误, 程序退出。{e}")
 
 
 def getOpenPosition(exchange):
     pos = getPositions(exchange)
     op = pos.loc[pos["contracts"] != 0]
     op = op.astype(
-            {
-                    "contracts": float,
-                    "unrealizedPnl": float,
-                    "leverage": float,
-                    "liquidationPrice": float,
-                    "collateral": float,
-                    "notional": float,
-                    "markPrice": float,
-                    "entryPrice": float,
-                    "marginMode": str,
-                    "side": str,
-                    "percentage": float,
-                    "timestamp": float,
-            }
+        {
+            "contracts": float,
+            "unrealizedPnl": float,
+            "leverage": float,
+            "liquidationPrice": float,
+            "collateral": float,
+            "notional": float,
+            "markPrice": float,
+            "entryPrice": float,
+            "marginType": str,
+            "side": str,
+            "percentage": float,
+            "timestamp": float,
+        }
     )
+    op = op[["contracts", "notional", "percentage", "unrealizedPnl", "entryPrice", "markPrice",
+             "liquidationPrice", "side", "leverage", "timestamp", "marginType"]]
     return op
 
 
-def getSignal_backup(klines, openPosition, factor, para):
+def getSignal_backup(klines, _openPosition, factor, para):
     # 每个币种计算因子列
     for symbol, df in klines.items():
         # 计算因子列
         df = getattr(signals, factor)(df, para)
 
         df.rename(
-                columns={
-                        "open": f"{symbol}_open",
-                        "high": f"{symbol}_high",
-                        "low": f"{symbol}_low",
-                        "close": f"{symbol}_close",
-                        "volume": f"{symbol}_volume",
-                        "factor": f"{symbol}_factor",
-                },
-                inplace=True,
+            columns={
+                "open": f"{symbol}_open",
+                "high": f"{symbol}_high",
+                "low": f"{symbol}_low",
+                "close": f"{symbol}_close",
+                "volume": f"{symbol}_volume",
+                "factor": f"{symbol}_factor",
+            },
+            inplace=True,
         )
 
-    # 汇总每个币种的df，生成总的dfAll
+    # 汇总每个币种的df, 生成总的dfAll
     dfs = list(klines.values())
     dfAll = reduce(lambda df1, df2: pd.merge(df1, df2, on="candle_begin_time"), dfs)
 
@@ -557,27 +662,27 @@ def getSignal_backup(klines, openPosition, factor, para):
     dfAll.reset_index(drop=True, inplace=True)
 
     # 根据factor选币
-    # 如果最大涨幅都小于0，那么空仓
+    # 如果最大涨幅都小于0, 那么空仓
     if dfAll.iloc[-1].filter(like="factor").max() < MIN_CHANGE:
         return 0
 
-    # .idxmax(axis=1)选取一行中的最大值的列名，即选取最大factor的币种
-    # 列名如ETH_factor，用replace把_factor去掉
+    # .idxmax(axis=1)选取一行中的最大值的列名, 即选取最大factor的币种
+    # 列名如ETH_factor, 用replace把_factor去掉
     dfAll["chosen"] = (
-            dfAll.filter(like="factor").idxmax(axis=1).str.replace("_factor", "")
+        dfAll.filter(like="factor").idxmax(axis=1).str.replace("_factor", "")
     )
     logger.debug(f"dfAllWithChosen:\n{dfAll.iloc[-1].filter(regex='.*factor|chosen')}")
 
-    # 根据现有持仓，生成交易信号
-    has = openPosition.index.tolist()[0] if len(openPosition) else None
+    # 根据现有持仓, 生成交易信号
+    has = _openPosition.index.tolist()[0] if len(_openPosition) else None
     logger.debug(f"has: {has}")
     new = dfAll.iloc[-1]["chosen"]
     logger.debug(f"new: {new}")
 
     if has != new:
         sig = {
-                0: has,
-                1: new,
+            0: has,
+            1: new,
         }
     else:
         sig = None
@@ -586,14 +691,14 @@ def getSignal_backup(klines, openPosition, factor, para):
 
 
 def getOpenSignal(
-        exchangeId,
-        klines,
-        selectNum,
-        selectFactor,
-        selectPeriod,
-        filterFactor,
-        filterLevel,
-        filterPeriod,
+    exchangeId,
+    klines,
+    selectNum,
+    selectFactor,
+    selectPeriod,
+    filterFactor,
+    filterLevel,
+    filterPeriod,
 ):
     # 每个币种计算因子列
     for symbol, df in klines.items():
@@ -603,12 +708,12 @@ def getOpenSignal(
         df = getattr(signals, selectFactor)(df, selectPeriod)
         df["symbol"] = symbol
 
-    # 汇总每个币种的df，生成总的dfAll
+    # 汇总每个币种的df, 生成总的dfAll
     dfs = list(klines.values())
     dfAll = reduce(lambda df1, df2: pd.concat([df1, df2], ignore_index=True), dfs)
-    # 根据时间和因子排序，最新k线的因子排序出现在最后
+    # 根据时间和因子排序, 最新k线的因子排序出现在最后
     g = dfAll.groupby("candle_begin_time")
-    # 有些币缺少k线，会导致最后一组k线的数量变少，因此用最后一组k线的数量作为选币池的总个数，过滤掉最后一组中没有出现的币种
+    # 有些币缺少k线, 会导致最后一组k线的数量变少, 因此用最后一组k线的数量作为选币池的总个数, 过滤掉最后一组中没有出现的币种
     coins_num = g.size()[-1]
     logger.debug(f"币池总数{len(klines)}, 最新k线币总数{coins_num}")
     dfAll["rank"] = g[selectFactor].rank(ascending=False, method="first")
@@ -616,10 +721,10 @@ def getOpenSignal(
     # 最新k线的排序结果
     dfNew = dfAll.tail(coins_num)
     logger.info(
-            f'本周期因子排序结果:\n{dfNew[["candle_begin_time", "symbol", selectFactor, "rank"]]}'
+        f'本周期因子排序结果:\n{dfNew[["candle_begin_time", "symbol", selectFactor, "rank"]]}'
     )
 
-    # 根据因子排序选前几名的币，也可以选后几名的币
+    # 根据因子排序选前几名的币, 也可以选后几名的币
     longCoins = dfNew.head(min(selectNum, int(len(dfNew) / 2)))
     # shortCoins = dfNew.tail(min(SELECTION_NUM, int(len(dfNew)/2)))
     # 还要满足下限参数的要求
@@ -657,10 +762,10 @@ def getOpenSignal(
 
 
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def setMarginType(exchange, symbolId, _type=1):
     if _type == 1:
@@ -669,8 +774,8 @@ def setMarginType(exchange, symbolId, _type=1):
         t = "ISOLATED"
 
     p = {
-            "symbol": symbolId,
-            "marginType": t,
+        "symbol": symbolId,
+        "marginType": t,
     }
 
     try:
@@ -690,7 +795,7 @@ def getOrderPrice(symbol, price, action, markets):
     orderPrice = int(orderPrice * (10 ** precision)) / (10 ** precision)
     # orderPrice = exchange.priceToPrecision(symbol, orderPrice)
     logger.debug(
-            f"symbol:{symbol}, slippage:{SLIPPAGE}, price:{price}, pre:{precision}, oP:{orderPrice}"
+        f"symbol:{symbol}, slippage:{SLIPPAGE}, price:{price}, pre:{precision}, oP:{orderPrice}"
     )
 
     return orderPrice
@@ -701,7 +806,7 @@ def getOrderSize(symbol, action, price, balance, markets, positions):
     if action == 0:
         return abs(float(positions.loc[markets.loc[symbol, "id"], "positionAmt"]))
 
-    # 如果是买单，则根据余额计算数量
+    # 如果是买单, 则根据余额计算数量
     precision = markets.loc[symbol, "precision"]["amount"]
     minLimit = markets.loc[symbol, "limits"]["amount"]["min"]
     maxLimit = markets.loc[symbol, "limits"]["market"]["max"]
@@ -710,7 +815,7 @@ def getOrderSize(symbol, action, price, balance, markets, positions):
     size = min(size, maxLimit)
     size = int(size * (10 ** precision)) / (10 ** precision)
     logger.debug(
-            f"symbol:{symbol}, maxBalance:{MAX_BALANCE}, price:{price}, pre:{precision}, size:{size}, min:{round(0.1 ** precision, precision)}, minLimit:{minLimit}, maxLimit:{maxLimit}"
+        f"symbol:{symbol}, maxBalance:{MAX_BALANCE}, price:{price}, pre:{precision}, size:{size}, min:{round(0.1 ** precision, precision)}, minLimit:{minLimit}, maxLimit:{maxLimit}"
     )
     if precision == 0:
         size = int(size)
@@ -720,236 +825,82 @@ def getOrderSize(symbol, action, price, balance, markets, positions):
 
 
 @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def getOrderStatus(exchange, symbolId, orderId):
     return exchange.fapiPrivateGetOrder(
-            {
-                    "symbol": symbolId,
-                    "orderId": orderId,
-            }
+        {
+            "symbol": symbolId,
+            "orderId": orderId,
+        }
     )["status"]
 
 
-@retry(
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(SLEEP_SHORT),
-        reraise=True,
-        before_sleep=before_sleep_log(logger, logging.ERROR),
-)
-def placeOrder(exchange, signal, markets):
-    orderList = []
+def placeOrder(exchange, markets, prices, signal, leverage, marginType):
+    orderParams = []
+    orderResp = []
 
-    # 执行卖出
-    if signal[0]:
-        pos = getOpenPosition(exchange)
-        for s in signal[0]:
-            symbolId = markets.loc[s, "id"]
-            if s not in pos.index:
-                logger.info(f"placeOrder({s})平仓之前已经没有持仓,可能已经被跟踪止损,本次不再平仓。")
-                continue
-            price = float(getTicker(exchange, s).iloc[0]["last"])
-            price = getOrderPrice(symbol=s, price=price, action=0, markets=markets)
-            quantity = abs(float(pos.loc[s, "contracts"]))
-
-            p = {
-                    "symbol": symbolId,
-                    "side": "SELL",
-                    "type": "LIMIT",
-                    "price": price,
-                    "quantity": quantity,
-                    "newClientOrderId": f"Rock{exchange.milliseconds()}",
-                    "timeInForce": "GTC",  # 必须参数"有效方式":GTC - Good Till Cancel 成交为止
-                    "reduceOnly": True,
-            }
-
-            logger.debug(f"placeOrder({s})平仓单参数: {p}")
-            try:
-                orderInfo = exchange.fapiPrivatePostOrder(p)
-                orderId = orderInfo["orderId"]
-
-                time.sleep(SLEEP_SHORT)
-
-                for i in range(MAX_TRY):
-                    orderStatue = exchange.fapiPrivateGetOrder(
-                            {
-                                    "symbol": symbolId,
-                                    "orderId": orderId,
-                            }
-                    )
-                    if orderStatue["status"] == "FILLED":
-                        orderList.append(
-                                [
-                                        orderStatue["symbol"],
-                                        orderStatue["side"],
-                                        orderStatue["status"],
-                                ]
-                        )
-                        logger.info(f"placeOrder({s})平仓单成交：{orderStatue}")
-                        break
-                    else:
-                        if i == MAX_TRY - 1:
-                            sendAndCritical(
-                                    f"{STRATEGY_NAME}: placeOrder({s})平仓单一直未成交,程序不退出,请尽快检查。"
-                            )
-                        time.sleep(SLEEP_SHORT)
-
-                # 平仓后撤销关联订单，避免影响后续再开仓的同币订单
-                try:
-                    logger.info(f"placeOrder({s})平仓后撤销所有关联挂单: {p}")
-                    exchange.fapiPrivateDeleteAllopenorders({"symbol": symbolId})
-                except Exception as e:
-                    sendAndCritical(
-                            f"{STRATEGY_NAME}: placeOrder({s})平仓后撤销关联挂单失败。程序不退出。请检查: {e}"
-                    )
-                    logger.exception(e)
-
-            except Exception as e:
-                sendAndCritical(
-                        f"{STRATEGY_NAME}: placeOrder({s})平仓单下单出错。程序不退出。请检查: {e}"
-                )
-                logger.exception(e)
-
-    # 执行买入
-    if signal[1]:
-        bTotal, bBalances, bPositions = getBalances(exchange)
-        balance = float(bTotal.iloc[0]["availableBalance"]) * MAX_BALANCE
-        for s in signal[1]:
-            symbolId = markets.loc[s, "id"]
-            try:
-                # 先设置全仓和杠杆
-                pos_type = 1
-                setMarginType(exchange, symbolId, _type=pos_type)
-                exchange.setLeverage(LEVERAGE, s)
-                # 为了防止有残留止盈止损挂单，先清除所有该symbol的已有挂单
-                exchange.fapiPrivateDeleteAllopenorders({"symbol": symbolId})
-                logger.info(
-                        f'设置模式{"cross" if pos_type == 1 else "isolated"}、设置杠杆{LEVERAGE}x、清理{symbolId}挂单完毕。'
-                )
-            except Exception as e:
-                logger.error(f"设置仓位模式、设置杠杆、清理挂单出现错误，程序不退出，请尽快检查{e}")
-                logger.exception(e)
-
-            balanceForMe = balance / len(signal[1])
-            logger.debug(f"{s}本次使用余额{balanceForMe}")
-            price = float(getTicker(exchange, s).iloc[0]["last"])
-            price = getOrderPrice(symbol=s, price=price, action=1, markets=markets)
-            quantity = getOrderSize(
-                    symbol=s,
-                    action=1,
-                    price=price,
-                    balance=balanceForMe,
-                    markets=markets,
-                    positions=bPositions,
-            )
-            p = {
-                    "symbol": symbolId,
-                    "side": "BUY",
-                    "type": "LIMIT",
-                    "price": price,
-                    "quantity": quantity,
-                    "newClientOrderId": f"Rock{exchange.milliseconds()}",
-                    "timeInForce": "GTC",  # 必须参数"有效方式":GTC - Good Till Cancel 成交为止
-            }
-
-            logger.debug(f"placeOrder({s})开仓单参数: {p}")
-            try:
-                orderInfo = exchange.fapiPrivatePostOrder(p)
-                orderId = orderInfo["orderId"]
-
-                time.sleep(SLEEP_SHORT)
-
-                for i in range(MAX_TRY):
-                    orderStatue = exchange.fapiPrivateGetOrder(
-                            {
-                                    "symbol": symbolId,
-                                    "orderId": orderId,
-                            }
-                    )
-                    if orderStatue["status"] == "FILLED":
-                        orderList.append(
-                                [
-                                        orderStatue["symbol"],
-                                        orderStatue["side"],
-                                        orderStatue["status"],
-                                ]
-                        )
-                        logger.info(f"placeOrder({s})开仓单成交：{orderStatue}")
-                        break
-                    else:
-                        if i == MAX_TRY - 1:
-                            sendAndPrintError(
-                                    f"{STRATEGY_NAME}: placeOrder({s})开仓单一直未成交,程序不退出,请尽快检查。"
-                            )
-                        time.sleep(SLEEP_SHORT)
-
-            except Exception as e:
-                sendAndPrintError(
-                        f"{STRATEGY_NAME}: placeOrder({s})开仓单下单出错，跳过该币种。程序不退出。请检查: {e}"
-                )
-                logger.exception(e)
+    # 构造订单参数
+    for symbol, row in signal.iterrows():
+        try:
+            symbolId = markets[symbol]["id"]
+            amount = row["amount"]
+            price = prices[symbolId]
+            if amount > 0 and price * amount < 7:
+                logger.debug(f"{symbol}买入金额小于7U,跳过该币种")
                 continue
 
-            # 开仓成功后，下固定止损单
-            if ENABLE_SL:
-                try:
-                    r = exchange.fetchPositions([s])
-                    quantityTotal = r[0]["contracts"]  # one-way mode单向持仓模式时
-                    # quantityTotal = r[1]["contracts"]  # hedge mode双向持仓模式时
-                    price = r[0]["entryPrice"] * (1 - SL_PERCENT)
-                    price = exchange.priceToPrecision(s, price)
+            price = price * (1 + SLIPPAGE) if amount > 0 else price * (1 - SLIPPAGE)
+            price = exchange.priceToPrecision(symbol, price)
+            side = "BUY" if amount > 0 else "SELL"
+            reduceOnly = "true" if side == "SELL" else "false"
+            try:
+                amount = exchange.amountToPrecision(symbol, abs(amount))
+            except ccxt.ArgumentsRequired as e:
+                logger.debug(f"{symbol}下单量不满足最小限制,跳过该币种{e}")
+                continue
+            para = {
+                "symbol": symbolId,
+                "side": side,
+                "type": "LIMIT",
+                "price": price,
+                "quantity": amount,
+                "reduceOnly": reduceOnly,
+                "timeInForce": "GTC",
+            }
+            logger.debug(f"{symbol}订单参数:{para}")
+            orderParams.append(para)
+            # 设置杠杆和全仓模式
+            retryIt(exchange.fapiPrivatePostLeverage, paras={"symbol": symbolId, "leverage": leverage})
+            retryIt(exchange.fapiPrivatePostMargintype, paras={"symbol": symbolId, "marginType": marginType})
+        except Exception as e:
+            sendAndPrintError(f"{STRATEGY_NAME} {symbol}构造订单信息出错,跳过该币种:{e}")
+            logger.exception(e)
+            continue
 
-                    # 跟踪止损单是市价单，市价单的最大下单限制比较小，需要考虑拆分下单
-                    maxLimit = markets.loc[s, "limits"]["market"]["max"]
-                    for i in range(math.ceil(quantityTotal / maxLimit)):
-                        slPara = {
-                                "symbol": symbolId,
-                                "side": "SELL",
-                                "type": "STOP_MARKET",
-                                "stopPrice": price,
-                                # "quantity": min(quantityTotal, maxLimit),
-                                "closePosition": True,
-                                # "timeInForce": "GTC",
-                        }
-                        logger.debug(f"{s}固定止损订单参数:{slPara}")
-                        exchange.fapiPrivatePostOrder(slPara)
-                except Exception as e:
-                    sendAndCritical(
-                            f"{STRATEGY_NAME}: placeOrder({s})固定止损下单失败。程序不退出。请检查日志: {e}"
-                    )
-                    logger.exception(e)
+    # 发送订单
+    _n = "\n"
+    for i in range(0, len(orderParams), 5):
+        _orderP = orderParams[i: i + 5]
+        logger.debug(f"本次批量下单参数:\n{_n.join(map(str, _orderP))}")
+        r = retryIt(
+            exchange.fapiPrivatePostBatchorders,
+            paras={"batchOrders": json.dumps(_orderP)},
+            critical=True
+        )
+        logger.debug(f"本次下单返回结果:\n{_n.join(map(str, r))}")
 
-            # 开仓成功后，下跟踪止盈单
-            if ENABLE_TP:
-                try:
-                    r = exchange.fetchPositions([s])
-                    quantityTotal = r[0]["contracts"]  # one-way mode单向持仓模式时
-                    # quantityTotal = r[1]["contracts"]  # hedge mode双向持仓模式时
+        # 检查订单状态
+        for idx, v in enumerate(r):
+            if "orderId" in v:
+                orderResp.append(v)
+            else:
+                sendAndPrintError(f"{STRATEGY_NAME} 下单出错: {_orderP[idx]}  {v}")
 
-                    # 跟踪止损单是市价单，市价单的最大下单限制比较小，需要考虑拆分下单
-                    maxLimit = markets.loc[s, "limits"]["market"]["max"]
-                    for i in range(math.ceil(quantityTotal / maxLimit)):
-                        tpPara = {
-                                "symbol": symbolId,
-                                "side": "SELL",
-                                "type": "TRAILING_STOP_MARKET",
-                                "quantity": min(quantityTotal, maxLimit),
-                                "callbackRate": TP_PERCENT * 100,
-                                "workingType": "CONTRACT_PRICE",
-                                "reduceOnly": True,
-                        }
-                        logger.debug(f"{s}跟踪止盈订单参数:{tpPara}")
-                        exchange.fapiPrivatePostOrder(tpPara)
-                except Exception as e:
-                    sendAndCritical(
-                            f"{STRATEGY_NAME}: placeOrder({s})跟踪止盈下单失败。程序不退出。请检查日志: {e}"
-                    )
-                    logger.exception(e)
-
-    return orderList
+    return orderResp
 
 
 def getFilterSignal(df, factor, period):
@@ -991,7 +942,7 @@ def getCloseSignal(df, factor, period, method):
 def placeBatchOrderClose(exchange, symbols, markets):
     # symbols = [{symbol:posAmount},{symbol:posAmount},...]
 
-    # batchOrder每批最多5笔订单，分批发送
+    # batchOrder每批最多5笔订单, 分批发送
     ordersTotal = []
     responsesTotal = []
     closed = []
@@ -1005,17 +956,17 @@ def placeBatchOrderClose(exchange, symbols, markets):
                 amount = float(list(s.values())[0])
                 symbolId = markets[symbol]["id"]
                 orders.append(
-                        {
-                                "symbol": symbolId,
-                                "side": "SELL",
-                                "type": "MARKET",
-                                "quantity": exchange.amountToPrecision(symbol, amount),
-                                "reduceOnly": "true",
-                        }
+                    {
+                        "symbol": symbolId,
+                        "side": "SELL",
+                        "type": "MARKET",
+                        "quantity": exchange.amountToPrecision(symbol, amount),
+                        "reduceOnly": "true",
+                    }
                 )
             except Exception as e:
                 sendAndPrintError(
-                        f"{STRATEGY_NAME} placeBatchOrderClose({s}构造订单报错，跳过该币种，请检查日志{e})"
+                    f"{STRATEGY_NAME} placeBatchOrderClose({s}构造订单报错, 跳过该币种, 请检查日志{e})"
                 )
                 logger.exception(e)
                 continue
@@ -1024,11 +975,11 @@ def placeBatchOrderClose(exchange, symbols, markets):
         ordersTotal += orders
         try:
             ordersStr = [
-                    exchange.encode_uri_component(exchange.json(order), safe=",")
-                    for order in orders
+                exchange.encode_uri_component(exchange.json(order), safe=",")
+                for order in orders
             ]
             response = exchange.fapiPrivatePostBatchOrders(
-                    {'batchOrders': '[' + ','.join(ordersStr) + ']'}
+                {'batchOrders': '[' + ','.join(ordersStr) + ']'}
             )
 
             responsesTotal += response
@@ -1043,7 +994,7 @@ def placeBatchOrderClose(exchange, symbols, markets):
 
             if "orderId" in r:
                 orderInfo = exchange.fapiPrivateGetOrder(
-                        {"orderId": r["orderId"], "symbol": r["symbol"]}
+                    {"orderId": r["orderId"], "symbol": r["symbol"]}
                 )
                 if orderInfo["status"] == "FILLED":
                     closed.append(r["symbol"])
@@ -1051,11 +1002,11 @@ def placeBatchOrderClose(exchange, symbols, markets):
                     break
                 else:
                     if i == MAX_TRY - 1:
-                        sendAndCritical(f"{r['symbol']}平仓查询三次仍不成功，请检查")
+                        sendAndCritical(f"{r['symbol']}平仓查询三次仍不成功, 请检查")
                         break
             else:
                 sendAndCritical(
-                        f"{STRATEGY_NAME} placeBatchOrderClose({orders[index]['symbol']})在批量平仓中失败，请检查。{r}"
+                    f"{STRATEGY_NAME} placeBatchOrderClose({orders[index]['symbol']})在批量平仓中失败, 请检查。{r}"
                 )
 
     return closed
@@ -1067,7 +1018,7 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
     # 本次使用的余额=总余额/未建仓数量
     eachCash = int(balance / selectNum)
 
-    # batchOrder每批最多5笔订单，分批发送
+    # batchOrder每批最多5笔订单, 分批发送
     ordersTotal = []
     responsesTotal = []
     opened = []
@@ -1085,22 +1036,22 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
 
             try:
                 if eachCash <= 5:
-                    sendAndPrintInfo(f"{symbol}下单金额小于5U，跳过")
+                    sendAndPrintInfo(f"{symbol}下单金额小于5U, 跳过")
                     continue
                 orders.append(
-                        {
-                                "symbol": symbolId,
-                                "side": "BUY",
-                                "type": "MARKET",
-                                "quantity": exchange.amountToPrecision(
-                                        symbol,
-                                        eachCash / getTicker(exchange, markets, symbol).loc[0, "askPrice"],
-                                ),
-                        }
+                    {
+                        "symbol": symbolId,
+                        "side": "BUY",
+                        "type": "MARKET",
+                        "quantity": exchange.amountToPrecision(
+                            symbol,
+                            eachCash / getTicker(exchange, markets, symbol).loc[0, "askPrice"],
+                        ),
+                    }
                 )
             except Exception as e:
                 sendAndPrintError(
-                        f"{STRATEGY_NAME} placeBatchOrderOpen({symbol}构造订单报错，跳过该币种，请检查日志{e})"
+                    f"{STRATEGY_NAME} placeBatchOrderOpen({symbol}构造订单报错, 跳过该币种, 请检查日志{e})"
                 )
                 logger.exception(e)
                 continue
@@ -1110,11 +1061,11 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
         ordersTotal += orders
         try:
             ordersStr = [
-                    exchange.encode_uri_component(exchange.json(order), safe=",")
-                    for order in orders
+                exchange.encode_uri_component(exchange.json(order), safe=",")
+                for order in orders
             ]
             response = exchange.fapiPrivatePostBatchOrders(
-                    {'batchOrders': '[' + ','.join(ordersStr) + ']'}
+                {'batchOrders': '[' + ','.join(ordersStr) + ']'}
             )
 
             responsesTotal += response
@@ -1129,7 +1080,7 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
 
             if "orderId" in r:
                 orderInfo = exchange.fapiPrivateGetOrder(
-                        {"orderId": r["orderId"], "symbol": r["symbol"]}
+                    {"orderId": r["orderId"], "symbol": r["symbol"]}
                 )
                 if orderInfo["status"] == "FILLED":
                     opened.append(r["symbol"])
@@ -1137,26 +1088,26 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
                     break
                 else:
                     if i == MAX_TRY - 1:
-                        sendAndCritical(f"{r['symbol']}买入单查询三次仍不成功，请检查")
+                        sendAndCritical(f"{r['symbol']}买入单查询三次仍不成功, 请检查")
                         break
             else:
                 sendAndCritical(
-                        f"{STRATEGY_NAME} placeBatchOrderClose({orders[index]['symbol']})在批量买入中失败，请检查。{r}"
+                    f"{STRATEGY_NAME} placeBatchOrderClose({orders[index]['symbol']})在批量买入中失败, 请检查。{r}"
                 )
 
     return opened
 
 
 def openPosition(
-        exchangeId,
-        markets,
-        openPositions,
-        openFactor,
-        openLevel,
-        openPeriod,
-        filterFactor,
-        filterLevel,
-        filterPeriod,
+    exchangeId,
+    markets,
+    openPositions,
+    openFactor,
+    openLevel,
+    openPeriod,
+    filterFactor,
+    filterLevel,
+    filterPeriod,
 ):
     ex = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
     ex.loadMarkets()
@@ -1174,17 +1125,17 @@ def openPosition(
     kNew = {list(i.keys())[0]: list(i.values())[0] for i in kNew}
 
     longCoins = getOpenSignal(
-            exchangeId=exchangeId,
-            klines=kNew,
-            selectNum=SELECTION_NUM,
-            selectFactor=openFactor,
-            selectPeriod=openPeriod,
-            filterFactor=filterFactor,
-            filterLevel=filterLevel,
-            filterPeriod=filterPeriod,
+        exchangeId=exchangeId,
+        klines=kNew,
+        selectNum=SELECTION_NUM,
+        selectFactor=openFactor,
+        selectPeriod=openPeriod,
+        filterFactor=filterFactor,
+        filterLevel=filterLevel,
+        filterPeriod=filterPeriod,
     )
 
-    # 去掉选出的币与持仓币重复的，只补足与要求选币数量的差异
+    # 去掉选出的币与持仓币重复的, 只补足与要求选币数量的差异
     longCoins = list(set(longCoins) - set(openedSymbols))
     selectNumThisTime = SELECTION_NUM - len(openedSymbols)
     longCoins = longCoins[:selectNumThisTime]
@@ -1197,7 +1148,7 @@ def openPosition(
 
 
 def closePosition(
-        exchangeId, markets, openPositions, level, factor, period, method, holdTime
+    exchangeId, markets, openPositions, level, factor, period, method, holdTime
 ):
     ex = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
     ex.loadMarkets()
@@ -1227,21 +1178,20 @@ def closePosition(
     return closed
 
 
-def closePositionForce(exchange, markets, openPostions):
-    for symbol, pos in openPostions.iterrows():
-        symbolId = markets[symbol]["id"]
+def closePositionForce(exchange, markets, openPositions, symbol=None):
+    # 如果没有symbol参数, 清空所有持仓, 如果有symbol只平仓指定币种
+    for s, pos in openPositions.iterrows():
+        if symbol is not None and s != symbol: continue
+        symbolId = markets[s]["id"]
         para = {
-                "symbol": symbolId,
-                "side": "SELL",
-                "type": "MARKET",
-                "quantity": pos["contracts"],
-                "reduceOnly": True,
+            "symbol": symbolId,
+            "side": "SELL",
+            "type": "MARKET",
+            "quantity": pos["contracts"],
+            "reduceOnly": True,
         }
-        try:
-            exchange.fapiPrivatePostOrder(para)
-        except Exception as e:
-            logger.error(f"closePositionForce({symbol})强制平仓出错: {e}")
-            logger.exception(e)
+
+        retryIt(exchange.fapiPrivatePostOrder, paras=para, critical=True)
 
 
 if __name__ == "__main__":

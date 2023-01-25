@@ -13,19 +13,30 @@ logger = logging.getLogger("app.sig")
 
 # 计算周期内的涨幅
 # 例如20日涨幅
-def signalMomentum(df, para=20):
+def s_mtm(df, para=20):
     n = para
+    df = df.copy()
     return df["close"].pct_change(periods=n)
 
 
-def signalSma(df, para):
+def s_bias(df, para=20):
     n = para
+    df = df.copy()
+    df["ma"] = df["close"].rolling(n).mean()
+    df["bias"] = df["close"] / df["ma"] - 1
+    return df["bias"]
+
+
+def s_sma(df, para=20):
+    n = para
+    df = df.copy()
     return df["close"].rolling(n).mean()
 
 
-def signalTest(df, para):
+def s_test(df, para):
     name = "signalTest"
     n = para
+    df = df.copy()
     df[name] = random.random() * -1
 
-    return df
+    return df[name]
