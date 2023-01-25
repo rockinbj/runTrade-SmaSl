@@ -154,8 +154,8 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             pos.sort_values(by="盈亏比例(%)", ascending=False, inplace=True)
             d = pos.to_dict(orient="index")
 
-            msg += f"#### 账户权益 : {wal}U\n"
-            msg += f"#### 可用余额 : {bal}U\n"
+            msg += f"#### 账户资金 : {wal}U\n"
+            msg += f"#### 可用资金 : {bal}U\n"
             msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
 
             for k, v in d.items():
@@ -175,12 +175,13 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             msg += "#### 当前空仓\n"
 
         msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
-        msg += f"#### 开仓因子 : {OPEN_LEVEL}*{OPEN_PERIOD}\n"
-        # msg += f"#### 过滤因子 : {OPEN_FACTOR}>{FF_1_BASE * 100}%\n"
-        msg += f"#### 平仓因子 : {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
-        msg += f"#### 固定止损 : {SL_PERCENT if ENABLE_SL else 'False'}\n"
-        msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
-        msg += f"#### 资金限额 : {MAX_BALANCE * 100}%\n"
+        msg += f"#### 开仓因子 : {OPEN_FACTOR}_{OPEN_LEVEL}_{OPEN_PERIOD}\n"
+        msg += f"#### 过滤因子 : f_bias: {OPEN_LEVEL} close>sma{OPEN_PERIOD}\n"
+        msg += f"#### 过滤因子 : f_sma: {CLOSE_LEVEL} close>sma{CLOSE_PERIOD}\n"
+        msg += f"#### 平仓因子 : {CLOSE_FACTOR}_{CLOSE_LEVEL}_{CLOSE_PERIOD}\n"
+        msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
+        msg += f"#### 页面杠杆 : {LEVERAGE}\n"
+        msg += f"#### 实际杠杆 : {round(LEVERAGE*MAX_BALANCE,2)}\n"
 
         sendMixin(msg, _type="PLAIN_POST")
 
