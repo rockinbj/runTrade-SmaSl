@@ -177,6 +177,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             msg += "#### 当前空仓\n"
 
         msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
+        msg += f"#### 选币数量 : {SELECTION_NUM}\n"
         msg += f"#### 开仓因子 : {OPEN_FACTOR}: {OPEN_LEVEL}*{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : f_bias: {OPEN_LEVEL} close>sma{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : f_sma: {CLOSE_LEVEL} close>sma{CLOSE_PERIOD}\n"
