@@ -885,11 +885,11 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
     for i in range(0, len(orderParams), 5):
         _orderP = orderParams[i: i + 5]
         logger.debug(f"本次批量下单参数:\n{_n.join(map(str, _orderP))}")
-        # r = retryIt(
-        #     exchange.fapiPrivatePostBatchorders,
-        #     paras={"batchOrders": json.dumps(_orderP)},
-        #     critical=True
-        # )
+        r = retryIt(
+            exchange.fapiPrivatePostBatchorders,
+            paras={"batchOrders": json.dumps(_orderP)},
+            critical=True
+        )
         logger.debug(f"本次下单返回结果:\n{_n.join(map(str, r))}")
 
         # 检查订单状态
