@@ -1,3 +1,4 @@
+import datetime as dt
 import json
 from functools import partial
 from functools import reduce
@@ -180,10 +181,10 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 过滤因子 : f_bias: {OPEN_LEVEL} close>sma{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : f_sma: {CLOSE_LEVEL} close>sma{CLOSE_PERIOD}\n"
         msg += f"#### 平仓因子 : {CLOSE_FACTOR}: {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
-        msg += f"#### 账户余额 : {round(bal,2)}U\n"
+        msg += f"#### 账户余额 : {round(bal, 2)}U\n"
         msg += f"#### 页面杠杆 : {LEVERAGE}\n"
-        msg += f"#### 资金上限 : {MAX_BALANCE*100}%\n"
-        msg += f"#### 实际杠杆 : {round(LEVERAGE*MAX_BALANCE,2)}\n"
+        msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
+        msg += f"#### 实际杠杆 : {round(LEVERAGE * MAX_BALANCE, 2)}\n"
 
         r = sendMixin(msg, _type="PLAIN_POST")
 
@@ -249,21 +250,6 @@ def sleepToClose(level, aheadSeconds, test=False, offsetSec=0):
     reraise=True,
     before_sleep=before_sleep_log(logger, logging.ERROR),
 )
-def getMarkets(markets):
-    try:
-        mks = pd.DataFrame.from_dict(markets, orient="index")
-        return mks
-    except Exception as e:
-        logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getMarkets()错误, 程序退出。{e}")
-
-
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_fixed(SLEEP_SHORT),
-    reraise=True,
-    before_sleep=before_sleep_log(logger, logging.ERROR),
-)
 def getTickers(exchange):
     try:
         tk = exchange.fetchTickers()
@@ -289,27 +275,6 @@ def getPrices(exchange):
     reraise=True,
     before_sleep=before_sleep_log(logger, logging.ERROR),
 )
-def getTicker(exchange, markets, symbol):
-    try:
-        symbolId = markets[symbol]["id"]
-        tk = exchange.fapiPublicGetTickerBookticker({"symbol": symbolId})
-        tk = pd.DataFrame(tk, index=[0])
-        tk = tk.astype(
-            {
-                "bidPrice": float,
-                "bidQty": float,
-                "askPrice": float,
-                "askQty": float,
-            }
-        )
-        # symbol  bidPrice bidQty  askPrice  askQty           time
-        # 0  BTCUSDT  20896.70  6.719  20896.80  12.708  1673800340925
-        return tk
-    except Exception as e:
-        logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getTicker()错误, 程序退出。{e}")
-
-
 def getTopN(tickers, rule="/USDT", _type="quoteVolume", n=50):
     tickers["timestamp"] = pd.to_datetime(tickers["timestamp"], unit="ms")
     tickers = tickers.filter(like=rule, axis=0)
@@ -441,7 +406,7 @@ def resampleKlines(df, level):
         on="candle_begin_time",
         label="left",
         closed="left"
-        ).agg(
+    ).agg(
         {
             "open": "first",
             "high": "max",
@@ -461,22 +426,6 @@ def resampleKlines(df, level):
     dfNew.reset_index(drop=True, inplace=True)
 
     return dfNew
-
-
-def combineK(kHistory, kNew):
-    if kHistory.keys() != kNew.keys():
-        sendAndRaise(f"{STRATEGY_NAME}: combineK()报错：历史k线与最新k线的symbols不一致, 请检查。退出。")
-
-    kAll = dict.fromkeys(kHistory.keys())
-    for symbol in kHistory.keys():
-        kAll[symbol] = pd.concat([kHistory[symbol], kNew[symbol]], ignore_index=True)
-        kAll[symbol].drop_duplicates(
-            subset="candle_begin_time", keep="last", inplace=True
-        )
-        kAll[symbol].sort_values(by="candle_begin_time", inplace=True)
-        kAll[symbol].reset_index(drop=True, inplace=True)
-
-    return kAll
 
 
 def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
@@ -527,7 +476,7 @@ def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
     if not klinesDf.empty:
         klinesDf["rank"] = klinesDf.groupby("candle_begin_time")["openFactor"].rank(ascending=False)
         klinesDf.sort_values(by=["candle_begin_time", "rank"], inplace=True)
-        pd.set_option('display.max_rows', len(klinesDf)+100)
+        pd.set_option('display.max_rows', len(klinesDf) + 100)
         logger.debug(f"选币排名过程:\n{klinesDf}")
 
         g = klinesDf.groupby("candle_begin_time")
@@ -636,133 +585,6 @@ def getOpenPosition(exchange):
     return op
 
 
-def getSignal_backup(klines, _openPosition, factor, para):
-    # 每个币种计算因子列
-    for symbol, df in klines.items():
-        # 计算因子列
-        df = getattr(signals, factor)(df, para)
-
-        df.rename(
-            columns={
-                "open": f"{symbol}_open",
-                "high": f"{symbol}_high",
-                "low": f"{symbol}_low",
-                "close": f"{symbol}_close",
-                "volume": f"{symbol}_volume",
-                "factor": f"{symbol}_factor",
-            },
-            inplace=True,
-        )
-
-    # 汇总每个币种的df, 生成总的dfAll
-    dfs = list(klines.values())
-    dfAll = reduce(lambda df1, df2: pd.merge(df1, df2, on="candle_begin_time"), dfs)
-
-    dfAll.drop_duplicates(subset="candle_begin_time", ignore_index=True, inplace=True)
-    dfAll.sort_values(by="candle_begin_time", inplace=True)
-    dfAll.reset_index(drop=True, inplace=True)
-
-    # 根据factor选币
-    # 如果最大涨幅都小于0, 那么空仓
-    if dfAll.iloc[-1].filter(like="factor").max() < MIN_CHANGE:
-        return 0
-
-    # .idxmax(axis=1)选取一行中的最大值的列名, 即选取最大factor的币种
-    # 列名如ETH_factor, 用replace把_factor去掉
-    dfAll["chosen"] = (
-        dfAll.filter(like="factor").idxmax(axis=1).str.replace("_factor", "")
-    )
-    logger.debug(f"dfAllWithChosen:\n{dfAll.iloc[-1].filter(regex='.*factor|chosen')}")
-
-    # 根据现有持仓, 生成交易信号
-    has = _openPosition.index.tolist()[0] if len(_openPosition) else None
-    logger.debug(f"has: {has}")
-    new = dfAll.iloc[-1]["chosen"]
-    logger.debug(f"new: {new}")
-
-    if has != new:
-        sig = {
-            0: has,
-            1: new,
-        }
-    else:
-        sig = None
-
-    return sig
-
-
-def getOpenSignal(
-    exchangeId,
-    klines,
-    selectNum,
-    selectFactor,
-    selectPeriod,
-    filterFactor,
-    filterLevel,
-    filterPeriod,
-):
-    # 每个币种计算因子列
-    for symbol, df in klines.items():
-        if (df is None) or df.empty or len(df) < selectPeriod: continue
-        logger.debug(symbol)
-        # 计算因子列
-        df = getattr(signals, selectFactor)(df, selectPeriod)
-        df["symbol"] = symbol
-
-    # 汇总每个币种的df, 生成总的dfAll
-    dfs = list(klines.values())
-    dfAll = reduce(lambda df1, df2: pd.concat([df1, df2], ignore_index=True), dfs)
-    # 根据时间和因子排序, 最新k线的因子排序出现在最后
-    g = dfAll.groupby("candle_begin_time")
-    # 有些币缺少k线, 会导致最后一组k线的数量变少, 因此用最后一组k线的数量作为选币池的总个数, 过滤掉最后一组中没有出现的币种
-    coins_num = g.size()[-1]
-    logger.debug(f"币池总数{len(klines)}, 最新k线币总数{coins_num}")
-    dfAll["rank"] = g[selectFactor].rank(ascending=False, method="first")
-    dfAll.sort_values(by=["candle_begin_time", "rank"], inplace=True)
-    # 最新k线的排序结果
-    dfNew = dfAll.tail(coins_num)
-    logger.info(
-        f'本周期因子排序结果:\n{dfNew[["candle_begin_time", "symbol", selectFactor, "rank"]]}'
-    )
-
-    # 根据因子排序选前几名的币, 也可以选后几名的币
-    longCoins = dfNew.head(min(selectNum, int(len(dfNew) / 2)))
-    # shortCoins = dfNew.tail(min(SELECTION_NUM, int(len(dfNew)/2)))
-    # 还要满足下限参数的要求
-    longCoins = longCoins.loc[dfNew[selectFactor] > MIN_CHANGE]
-
-    # 最后得出一个symbol list
-    longCoins = longCoins["symbol"].values.tolist()
-    filterCoins = []
-    if longCoins:
-        logger.debug(f"本周期符合selectFactor的币种{longCoins}")
-
-        # 用过滤因子过滤结果
-        # 满足4h close>sma20
-        singleGetKlines = partial(getKlines, exchangeId, filterLevel, filterPeriod)
-        # pNum = min(cpu_count(), len(longCoins))
-        pNum = len(longCoins)
-        with Pool(processes=pNum) as pool:
-            klines = pool.map(singleGetKlines, [[symbol] for symbol in longCoins])
-        klines = {list(i.keys())[0]: list(i.values())[0] for i in klines}
-
-        filterCoins = []
-        for symbol, df in klines.items():
-            isOk = getFilterSignal(df, factor=filterFactor, period=filterPeriod)
-            if isOk:
-                filterCoins.append(symbol)
-
-        if filterCoins:
-            logger.debug(f"本周期符合filterFactor的币种{filterCoins}")
-        else:
-            logger.debug(f"本周期无符合filterFactor的币种")
-
-    else:
-        logger.debug(f"本周期无符合selectFactor的币种")
-
-    return filterCoins
-
-
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_fixed(SLEEP_SHORT),
@@ -784,61 +606,6 @@ def setMarginType(exchange, symbolId, _type=1):
         exchange.fapiPrivatePostMargintype(p)
     except ccxt.MarginModeAlreadySet:
         pass
-
-
-def getOrderPrice(symbol, price, action, markets):
-    precision = markets.loc[symbol, "precision"]["price"]
-
-    if action == 1:
-        orderPrice = price * (1 + SLIPPAGE)
-    elif action == 0:
-        orderPrice = price * (1 - SLIPPAGE)
-
-    orderPrice = int(orderPrice * (10 ** precision)) / (10 ** precision)
-    # orderPrice = exchange.priceToPrecision(symbol, orderPrice)
-    logger.debug(
-        f"symbol:{symbol}, slippage:{SLIPPAGE}, price:{price}, pre:{precision}, oP:{orderPrice}"
-    )
-
-    return orderPrice
-
-
-def getOrderSize(symbol, action, price, balance, markets, positions):
-    # 如果是卖单则直接返回现有持仓数量
-    if action == 0:
-        return abs(float(positions.loc[markets.loc[symbol, "id"], "positionAmt"]))
-
-    # 如果是买单, 则根据余额计算数量
-    precision = markets.loc[symbol, "precision"]["amount"]
-    minLimit = markets.loc[symbol, "limits"]["amount"]["min"]
-    maxLimit = markets.loc[symbol, "limits"]["market"]["max"]
-
-    size = max(balance * LEVERAGE / price, minLimit)
-    size = min(size, maxLimit)
-    size = int(size * (10 ** precision)) / (10 ** precision)
-    logger.debug(
-        f"symbol:{symbol}, maxBalance:{MAX_BALANCE}, price:{price}, pre:{precision}, size:{size}, min:{round(0.1 ** precision, precision)}, minLimit:{minLimit}, maxLimit:{maxLimit}"
-    )
-    if precision == 0:
-        size = int(size)
-        return max(size, minLimit)
-    else:
-        return max(size, round(0.1 ** precision, precision))
-
-
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_fixed(SLEEP_SHORT),
-    reraise=True,
-    before_sleep=before_sleep_log(logger, logging.ERROR),
-)
-def getOrderStatus(exchange, symbolId, orderId):
-    return exchange.fapiPrivateGetOrder(
-        {
-            "symbol": symbolId,
-            "orderId": orderId,
-        }
-    )["status"]
 
 
 def placeOrder(exchange, markets, prices, signal, leverage, marginType):
@@ -905,282 +672,6 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
     return orderResp
 
 
-def getFilterSignal(df, factor, period):
-    factor = factor.lower()
-    factorName = f"sma{period}"
-
-    if factor == "closegtsma":
-        df[factorName] = df["close"].rolling(period).mean()
-        c1 = df.iloc[-1]["close"]
-        f1 = df.iloc[-1][factorName]
-
-        return True if c1 > f1 else False
-
-    elif factor == "xxx":
-        pass
-
-
-def getCloseSignal(df, factor, period, method):
-    factor = factor.lower()
-    period = int(period)
-    method = method.lower()
-
-    if factor == "sma":
-        df["factor"] = df["close"].rolling(period).mean()
-    elif factor == "xxx":
-        pass
-
-    c1 = df.iloc[-1]["close"]
-    f1 = df.iloc[-1]["factor"]
-
-    if method == "less":
-        r = c1 < f1
-    elif method == "xxx":
-        pass
-
-    return r
-
-
-def placeBatchOrderClose(exchange, symbols, markets):
-    # symbols = [{symbol:posAmount},{symbol:posAmount},...]
-
-    # batchOrder每批最多5笔订单, 分批发送
-    ordersTotal = []
-    responsesTotal = []
-    closed = []
-    for i in range(0, len(symbols), 5):
-        subSymbols = symbols[i: i + 5]
-
-        orders = []
-        for s in subSymbols:
-            try:
-                symbol = list(s.keys())[0]
-                amount = float(list(s.values())[0])
-                symbolId = markets[symbol]["id"]
-                orders.append(
-                    {
-                        "symbol": symbolId,
-                        "side": "SELL",
-                        "type": "MARKET",
-                        "quantity": exchange.amountToPrecision(symbol, amount),
-                        "reduceOnly": "true",
-                    }
-                )
-            except Exception as e:
-                sendAndPrintError(
-                    f"{STRATEGY_NAME} placeBatchOrderClose({s}构造订单报错, 跳过该币种, 请检查日志{e})"
-                )
-                logger.exception(e)
-                continue
-
-        logger.debug(f"批量平仓单参数: {orders}")
-        ordersTotal += orders
-        try:
-            ordersStr = [
-                exchange.encode_uri_component(exchange.json(order), safe=",")
-                for order in orders
-            ]
-            response = exchange.fapiPrivatePostBatchOrders(
-                {'batchOrders': '[' + ','.join(ordersStr) + ']'}
-            )
-
-            responsesTotal += response
-
-        except Exception as e:
-            sendAndCritical(e)
-            logger.exception(e)
-
-    for index, r in enumerate(responsesTotal):
-        for i in range(MAX_TRY):
-            time.sleep(SLEEP_SHORT)
-
-            if "orderId" in r:
-                orderInfo = exchange.fapiPrivateGetOrder(
-                    {"orderId": r["orderId"], "symbol": r["symbol"]}
-                )
-                if orderInfo["status"] == "FILLED":
-                    closed.append(r["symbol"])
-                    logger.debug(f"{r['symbol']}平仓成功")
-                    break
-                else:
-                    if i == MAX_TRY - 1:
-                        sendAndCritical(f"{r['symbol']}平仓查询三次仍不成功, 请检查")
-                        break
-            else:
-                sendAndCritical(
-                    f"{STRATEGY_NAME} placeBatchOrderClose({orders[index]['symbol']})在批量平仓中失败, 请检查。{r}"
-                )
-
-    return closed
-
-
-def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
-    # symbols = [a,b,c]
-    balance = getBalance(exchange, symbol="USDT")["free"] * MAX_BALANCE
-    # 本次使用的余额=总余额/未建仓数量
-    eachCash = int(balance / selectNum)
-
-    # batchOrder每批最多5笔订单, 分批发送
-    ordersTotal = []
-    responsesTotal = []
-    opened = []
-    for i in range(0, len(symbols), 5):
-        subSymbols = symbols[i: i + 5]
-
-        orders = []
-        for symbol in subSymbols:
-            symbolId = markets[symbol]["id"]
-            try:
-                setMarginType(exchange, symbolId, _type=1)
-                exchange.setLeverage(LEVERAGE, symbol)
-            except Exception:
-                pass
-
-            try:
-                if eachCash <= 5:
-                    sendAndPrintInfo(f"{symbol}下单金额小于5U, 跳过")
-                    continue
-                orders.append(
-                    {
-                        "symbol": symbolId,
-                        "side": "BUY",
-                        "type": "MARKET",
-                        "quantity": exchange.amountToPrecision(
-                            symbol,
-                            eachCash / getTicker(exchange, markets, symbol).loc[0, "askPrice"],
-                        ),
-                    }
-                )
-            except Exception as e:
-                sendAndPrintError(
-                    f"{STRATEGY_NAME} placeBatchOrderOpen({symbol}构造订单报错, 跳过该币种, 请检查日志{e})"
-                )
-                logger.exception(e)
-                continue
-
-        if not orders: continue
-        logger.debug(f"批量开仓单参数: {orders}")
-        ordersTotal += orders
-        try:
-            ordersStr = [
-                exchange.encode_uri_component(exchange.json(order), safe=",")
-                for order in orders
-            ]
-            response = exchange.fapiPrivatePostBatchOrders(
-                {'batchOrders': '[' + ','.join(ordersStr) + ']'}
-            )
-
-            responsesTotal += response
-
-        except Exception as e:
-            sendAndCritical(e)
-            logger.exception(e)
-
-    for index, r in enumerate(responsesTotal):
-        for i in range(MAX_TRY):
-            time.sleep(SLEEP_SHORT)
-
-            if "orderId" in r:
-                orderInfo = exchange.fapiPrivateGetOrder(
-                    {"orderId": r["orderId"], "symbol": r["symbol"]}
-                )
-                if orderInfo["status"] == "FILLED":
-                    opened.append(r["symbol"])
-                    logger.debug(f"{r['symbol']}买入成功")
-                    break
-                else:
-                    if i == MAX_TRY - 1:
-                        sendAndCritical(f"{r['symbol']}买入单查询三次仍不成功, 请检查")
-                        break
-            else:
-                sendAndCritical(
-                    f"{STRATEGY_NAME} placeBatchOrderClose({orders[index]['symbol']})在批量买入中失败, 请检查。{r}"
-                )
-
-    return opened
-
-
-def openPosition(
-    exchangeId,
-    markets,
-    openPositions,
-    openFactor,
-    openLevel,
-    openPeriod,
-    filterFactor,
-    filterLevel,
-    filterPeriod,
-):
-    ex = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
-    ex.loadMarkets()
-    openedSymbols = openPositions.index.tolist()
-
-    tickers = getTickers(ex)
-    symbols = getTopN(tickers, rule=RULE, _type=TYPE, n=TOP)
-    symbols = (set(symbols) | set(SYMBOLS_WHITE)) - set(SYMBOLS_BLACK)
-    symbols = list(symbols)
-
-    singleGetKlines = partial(getKlines, exchangeId, openLevel, openPeriod)
-    # pNum = min(cpu_count(), len(symbols))
-    pNum = len(symbols)
-    with Pool(processes=pNum) as pool:
-        kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
-    kNew = {list(i.keys())[0]: list(i.values())[0] for i in kNew}
-
-    longCoins = getOpenSignal(
-        exchangeId=exchangeId,
-        klines=kNew,
-        selectNum=SELECTION_NUM,
-        selectFactor=openFactor,
-        selectPeriod=openPeriod,
-        filterFactor=filterFactor,
-        filterLevel=filterLevel,
-        filterPeriod=filterPeriod,
-    )
-
-    # 去掉选出的币与持仓币重复的, 只补足与要求选币数量的差异
-    longCoins = list(set(longCoins) - set(openedSymbols))
-    selectNumThisTime = SELECTION_NUM - len(openedSymbols)
-    longCoins = longCoins[:selectNumThisTime]
-    opened = []
-
-    if longCoins:
-        opened = placeBatchOrderOpen(ex, longCoins, markets, selectNum=selectNumThisTime)
-
-    return opened
-
-
-def closePosition(
-    exchangeId, markets, openPositions, level, factor, period, method, holdTime
-):
-    ex = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
-    ex.loadMarkets()
-    symbols = openPositions.index.tolist()
-    amounts = openPositions.contracts.tolist()
-    pos = {symbols[i]: amounts[i] for i in range(len(symbols))}
-    klines = getKlines(exchangeId, level=level, amount=period, symbols=symbols)
-    willClose = []
-    closed = []
-
-    for symbol, df in klines.items():
-        closeSig = getCloseSignal(df, factor, period, method)
-        reachHoldTime = (
-                                time.time() * 1000 - openPositions.loc[symbol, "timestamp"]
-                        ) >= ex.parseTimeframe(holdTime) * 1000
-        if closeSig or reachHoldTime:
-            if reachHoldTime:
-                sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}满足持仓时间平仓")
-            if closeSig:
-                sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}满足closeFactor平仓")
-            willClose.append({symbol: pos[symbol]})
-
-    if willClose:
-        logger.debug(f"willClose: {willClose}")
-        closed = placeBatchOrderClose(ex, willClose, markets)
-
-    return closed
-
-
 def closePositionForce(exchange, markets, openPositions, symbol=None):
     # 如果没有symbol参数, 清空所有持仓, 如果有symbol只平仓指定币种
     for s, pos in openPositions.iterrows():
@@ -1195,11 +686,3 @@ def closePositionForce(exchange, markets, openPositions, symbol=None):
         }
 
         retryIt(exchange.fapiPrivatePostOrder, paras=para, critical=True)
-
-
-if __name__ == "__main__":
-    exId = EXCHANGE
-    ex = ccxt.binance(EXCHANGE_CONFIG)
-    mkts = ex.loadMarkets()
-    b = getTicker(ex, mkts, "BTC/USDT")
-    print(b)
