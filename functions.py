@@ -1,7 +1,8 @@
 import json
 from functools import partial
 from functools import reduce
-from multiprocessing import Pool, cpu_count
+# from multiprocessing import Pool, cpu_count
+from multiprocessing.pool import ThreadPool as Pool
 
 import ccxt
 import pandas as pd
@@ -413,7 +414,8 @@ def getKlineForSymbol(exchange, level, amount, symbol):
 
 def getKlinesMulProc(exchangeId, symbols, level, amount):
     singleGetKlines = partial(getKlines, exchangeId, level, amount)
-    pNum = min(cpu_count(), len(symbols))
+    # pNum = min(cpu_count(), len(symbols))
+    pNum = len(symbols)
     logger.debug(f"开启{pNum}线程获取k线")
     with Pool(processes=pNum) as pool:
         kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
