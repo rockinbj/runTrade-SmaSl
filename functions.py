@@ -497,20 +497,16 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
 
 
 def setFilter(kDict, _filters):
-    kNew = {}
     for symbol, df in kDict.items():
-        result = True
         for fName, fParas in _filters.items():
             _cls = __import__("filters")
-            r = getattr(_cls, fName)(df, fParas)
-            if r == False:
-                result = False
-                logger.debug(f"{symbol}不符合 {fName} 被剔除")
-                break
-        if result is True:
-            kNew[symbol] = kDict[symbol]
-
-    return kNew
+            kDict[symbol] = getattr(_cls, fName)(kDict[symbol], fParas)
+        if kDict[symbol].empty or kDict[symbol] is None:
+            del kDict[symbol]
+        else:
+            kDict[symbol].sort_values("candle_begin_time", inplace=True)
+    # kDict = {i:kDict[i] for i in kDict if not kDict[i].empty or not None}  # 去空
+    return kDict
 
 
 def setFactor(klinesDict: dict, openFactor, openPeriod):
@@ -531,6 +527,7 @@ def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
     if not klinesDf.empty:
         klinesDf["rank"] = klinesDf.groupby("candle_begin_time")["openFactor"].rank(ascending=False)
         klinesDf.sort_values(by=["candle_begin_time", "rank"], inplace=True)
+        pd.set_option('display.max_rows', len(klinesDf)+100)
         logger.debug(f"选币排名过程:\n{klinesDf}")
 
         g = klinesDf.groupby("candle_begin_time")
@@ -743,7 +740,8 @@ def getOpenSignal(
         # 用过滤因子过滤结果
         # 满足4h close>sma20
         singleGetKlines = partial(getKlines, exchangeId, filterLevel, filterPeriod)
-        pNum = min(cpu_count(), len(longCoins))
+        # pNum = min(cpu_count(), len(longCoins))
+        pNum = len(longCoins)
         with Pool(processes=pNum) as pool:
             klines = pool.map(singleGetKlines, [[symbol] for symbol in longCoins])
         klines = {list(i.keys())[0]: list(i.values())[0] for i in klines}
@@ -1123,7 +1121,8 @@ def openPosition(
     symbols = list(symbols)
 
     singleGetKlines = partial(getKlines, exchangeId, openLevel, openPeriod)
-    pNum = min(cpu_count(), len(symbols))
+    # pNum = min(cpu_count(), len(symbols))
+    pNum = len(symbols)
     with Pool(processes=pNum) as pool:
         kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
     kNew = {list(i.keys())[0]: list(i.values())[0] for i in kNew}
