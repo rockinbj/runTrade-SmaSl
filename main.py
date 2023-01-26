@@ -60,8 +60,8 @@ def main():
                 posNow=posNow,
                 closeFactor=CLOSE_FACTOR,
                 closeLevel=CLOSE_LEVEL,
-                closePeriod=CLOSE_PERIOD,
                 closeMethod=CLOSE_METHOD,
+                closePeriods=CLOSE_PERIODS,
             )
 
         # 从币池列表中按照TYPE排序, 取topN

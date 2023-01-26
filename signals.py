@@ -33,6 +33,14 @@ def s_sma(df, para=20):
     return df["close"].rolling(n).mean()
 
 
+def s_ema(df, para=20):
+    n = para
+    df = df.copy()
+    name = "ema" + str(n)
+    df[name] = pd.DataFrame.ewm(df["close"], span=n).mean()
+    return df[name]
+
+
 def s_test(df, para):
     name = "signalTest"
     n = para

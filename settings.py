@@ -27,8 +27,9 @@ OFFSET_LIST = [0,12,24,36]
 # 平仓参数，例如4h级别close小于MA30
 CLOSE_LEVEL = "4h"
 CLOSE_FACTOR = "s_sma"
-CLOSE_PERIOD = 20
-CLOSE_METHOD = "less"
+CLOSE_PERIODS = [20, 60]  # 必须是list, method=="less"放一个元素, method="sma1LtSma2"放两个
+# CLOSE_METHOD = "less"
+CLOSE_METHOD = "sma1LtSma2"
 
 # 过滤因子，涨幅下限，小于此则排除
 FILTER_FACTORS = {
@@ -38,10 +39,10 @@ FILTER_FACTORS = {
         "base": 0 / 100,
         "gt": True,
     },
-    "f_sma": {
+    "f_ema_trend": {
         "level": CLOSE_LEVEL,
-        "period": CLOSE_PERIOD,
-        "gt": True,
+        "periods": [20,60,120],
+        "long": True,
     }
 }
 

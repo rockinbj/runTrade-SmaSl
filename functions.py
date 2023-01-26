@@ -180,8 +180,8 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 选币数量 : {SELECTION_NUM}\n"
         msg += f"#### 开仓因子 : {OPEN_FACTOR}: {OPEN_LEVEL}*{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : f_bias: {OPEN_LEVEL} close>sma{OPEN_PERIOD}\n"
-        msg += f"#### 过滤因子 : f_sma: {CLOSE_LEVEL} close>sma{CLOSE_PERIOD}\n"
-        msg += f"#### 平仓因子 : {CLOSE_FACTOR}: {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
+        msg += f"#### 过滤因子 : f_ema_trend: {CLOSE_LEVEL} long:{FILTER_FACTORS['f_ema_trend']['long']}\n"
+        msg += f"#### 平仓因子 : {CLOSE_FACTOR}: {CLOSE_LEVEL} {CLOSE_PERIODS[0]}<{CLOSE_PERIODS[1]}\n"
         msg += f"#### 账户余额 : {round(bal, 2)}U\n"
         msg += f"#### 页面杠杆 : {LEVERAGE}\n"
         msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
@@ -455,7 +455,7 @@ def setFilter(kDict, _filters):
             del kDict[symbol]
         else:
             kDict[symbol].sort_values("candle_begin_time", inplace=True)
-    # kDict = {i:kDict[i] for i in kDict if not kDict[i].empty or not None}  # 去空
+
     return kDict
 
 
@@ -520,26 +520,37 @@ def getSignal(posAim: pd.DataFrame, posNow: pd.DataFrame):
     return sig
 
 
-def checkStoploss(exchange, markets, posNow: pd.DataFrame, closeFactor, closeLevel, closePeriod, closeMethod):
+def checkStoploss(exchange, markets, posNow: pd.DataFrame,
+                  closeFactor, closeLevel, closeMethod,
+                  closePeriods):
     pos = posNow.copy()
     symbols = pos.index.tolist()
     kDict = getKlinesMulProc(
         exchangeId=exchange.id,
         symbols=symbols,
         level=closeLevel,
-        amount=closePeriod,
+        amount=max(closePeriods),
     )
     # 检查每个币种是否满足closeFactor的止损条件
     for symbol, df in kDict.items():
         df["symbol"] = symbol
-        df["closeFactor"] = getattr(signals, closeFactor)(df, closePeriod)
+        names = []
+        _stop = False
+        for k, v in enumerate(closePeriods):
+            name = closeFactor + str(k)
+            names.append(name)
+            df[name] = getattr(signals, closeFactor)(df, v)
 
         if closeMethod == "less":
-            if df.iloc[-1]["close"] < df.iloc[-1]["closeFactor"]:
-                closePositionForce(exchange, markets, posNow, symbol)
-                sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}满足closeFactor已平仓")
-        elif closeMethod == "XXX":
-            pass
+            if df.iloc[-1]["close"] < df.iloc[-1][names[0]]:
+                _stop = True
+        elif closeMethod == "sma1LtSma2":
+            if df.iloc[-1][names[0]] < df.iloc[-1][names[1]]:
+                _stop = True
+
+        if _stop is True:
+            closePositionForce(exchange, markets, posNow, symbol)
+            sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}满足closeFactor已平仓")
 
 
 @retry(
