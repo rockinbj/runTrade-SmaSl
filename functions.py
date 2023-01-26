@@ -670,6 +670,11 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
             else:
                 sendAndPrintError(f"{STRATEGY_NAME} 下单出错: {_orderP[idx]}  {v}")
 
+    # 整理订单回执，去掉无用信息
+    if orderResp:
+        for k, v in enumerate(orderResp):
+            orderResp[k] = [v["side"], v["symbol"]]
+        orderResp = "\n".join([str(i) for i in orderResp])
     return orderResp
 
 
