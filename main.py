@@ -74,7 +74,7 @@ def main():
         )
         symbols = list((set(symbols) | set(SYMBOLS_WHITE)) - set(SYMBOLS_BLACK))
         logger.info(f"Top{TOP}筛选和合并黑白名单之后, 币池列表共 {len(symbols)}")
-        logger.debug(f"币池列表:\n{_n.join(symbols)}")
+        # logger.debug(f"币池列表:\n{_n.join(symbols)}")
 
         # 多进程获取topN币种的k线数据
         kDict = getKlinesMulProc(
@@ -89,7 +89,7 @@ def main():
         kDict = setFilter(kDict, _filters=FILTER_FACTORS)
         logger.info(f"过滤因子筛选后的币种 {len(kDict)}")
         if len(kDict) == 0:
-            logger.info(f"本周期无合格币种，直接进入下一周期\n\n\n")
+            sendAndPrintInfo(f"{STRATEGY_NAME} 本周期无合格币种，等待下一周期\n\n\n")
             continue
 
         # 计算开仓和平仓因子
@@ -106,7 +106,7 @@ def main():
             selectNum=SELECTION_NUM,
             filters=FILTER_FACTORS,
         )
-        logger.info(f"选币结果:\n{kDf}")
+        logger.debug(f"选币结果:\n{kDf}")
 
         # 计算offset
         kDf = getOffset(
@@ -117,7 +117,7 @@ def main():
             offsetList=OFFSET_LIST,
             runtime=runtime,
         )
-        logger.debug(f"计算offset结果:\n{kDf}")
+        logger.info(f"计算offset结果:\n{kDf}")
 
         # 计算目标持仓
         logger.info(f"当前可用资金共: {balance}")
@@ -157,4 +157,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main()
+        except Exception as e:
+            sendAndPrintError(f"主程序异常, 自动重启, 请检查{e}")
+            logger.exception(e)
+            continue
+
