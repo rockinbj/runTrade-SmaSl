@@ -13,20 +13,19 @@ TYPE = "quoteVolume"
 TOP = 200
 
 # 选币个数
-SELECTION_NUM = 2
-
-# 持仓时间，offset
-HOLD_TIME = "6h"
-OPEN_LEVEL = "1h"
-OFFSET_LIST = [0,2,4]
+SELECTION_NUM = 1
 
 # 开仓参数，4h*3，例如12小时bias因子涨幅排行
 OPEN_FACTOR = "s_bias"
-# FACTOR = "s_test"
+OPEN_LEVEL = "5m"
 OPEN_PERIOD = 6
 
+# 持仓时间，offset
+HOLD_TIME = "30m"
+OFFSET_LIST = [0,1,2,3,4,5]
+
 # 平仓参数，例如4h级别close小于MA30
-CLOSE_LEVEL = "1h"
+CLOSE_LEVEL = "30m"
 CLOSE_FACTOR = "s_sma"
 CLOSE_PERIOD = 12
 CLOSE_METHOD = "less"
@@ -92,7 +91,7 @@ LOG_LEVEL_FILE = logging.DEBUG
 
 
 # 报告发送间隔分钟
-REPORT_INTERVAL = 30
+REPORT_INTERVAL = 2
 # 是否拨打电话
 CALL_ALARM = True
 

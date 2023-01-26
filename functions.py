@@ -81,7 +81,7 @@ def sendMixin(msg, _type="PLAIN_TEXT"):
     }
 
     try:
-        r = requests.post(url, data=value, timeout=2).json()
+        r = requests.post(url, data=value, timeout=2).text
     except Exception as err:
         logger.exception(err)
 
@@ -138,6 +138,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
                     "leverage",
                 ]
             ]
+
             pos.rename(
                 columns={
                     "notional": "持仓价值(U)",
@@ -151,11 +152,12 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
                 },
                 inplace=True,
             )
+
             pos.sort_values(by="盈亏比例(%)", ascending=False, inplace=True)
             d = pos.to_dict(orient="index")
 
-            msg += f"#### 账户资金 : {wal}U\n"
-            msg += f"#### 可用资金 : {bal}U\n"
+            msg += f"#### 账户资金 : {wal}U, 资金上限 : {MAX_BALANCE * 100}%\n"
+            msg += f"#### 可用资金 : {bal}U, 页面杠杆 : {LEVERAGE}, 实际杠杆 : {round(LEVERAGE*MAX_BALANCE,2)}\n"
             msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
 
             for k, v in d.items():
@@ -170,20 +172,16 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
  - 开仓时间 : {v["开仓时间"]}
  - 杠杆倍数 : {v["杠杆倍数"]}
 """
-
         else:
             msg += "#### 当前空仓\n"
 
         msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
-        msg += f"#### 开仓因子 : {OPEN_FACTOR}_{OPEN_LEVEL}_{OPEN_PERIOD}\n"
+        msg += f"#### 开仓因子 : {OPEN_FACTOR}: {OPEN_LEVEL}*{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : f_bias: {OPEN_LEVEL} close>sma{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : f_sma: {CLOSE_LEVEL} close>sma{CLOSE_PERIOD}\n"
-        msg += f"#### 平仓因子 : {CLOSE_FACTOR}_{CLOSE_LEVEL}_{CLOSE_PERIOD}\n"
-        msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
-        msg += f"#### 页面杠杆 : {LEVERAGE}\n"
-        msg += f"#### 实际杠杆 : {round(LEVERAGE*MAX_BALANCE,2)}\n"
+        msg += f"#### 平仓因子 : {CLOSE_FACTOR}: {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
 
-        sendMixin(msg, _type="PLAIN_POST")
+        r = sendMixin(msg, _type="PLAIN_POST")
 
 
 def secondsToNext(exchange, level):
@@ -632,7 +630,7 @@ def getOpenPosition(exchange):
         }
     )
     op = op[["contracts", "notional", "percentage", "unrealizedPnl", "leverage", "entryPrice", "markPrice",
-             "liquidationPrice", "side", "marginType", "timestamp"]]
+             "liquidationPrice", "datetime", "side", "marginType", "timestamp"]]
     return op
 
 
@@ -887,11 +885,11 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
     for i in range(0, len(orderParams), 5):
         _orderP = orderParams[i: i + 5]
         logger.debug(f"本次批量下单参数:\n{_n.join(map(str, _orderP))}")
-        r = retryIt(
-            exchange.fapiPrivatePostBatchorders,
-            paras={"batchOrders": json.dumps(_orderP)},
-            critical=True
-        )
+        # r = retryIt(
+        #     exchange.fapiPrivatePostBatchorders,
+        #     paras={"batchOrders": json.dumps(_orderP)},
+        #     critical=True
+        # )
         logger.debug(f"本次下单返回结果:\n{_n.join(map(str, r))}")
 
         # 检查订单状态
