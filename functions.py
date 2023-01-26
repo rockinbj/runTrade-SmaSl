@@ -156,8 +156,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             pos.sort_values(by="盈亏比例(%)", ascending=False, inplace=True)
             d = pos.to_dict(orient="index")
 
-            msg += f"#### 账户资金 : {wal}U, 资金上限 : {MAX_BALANCE * 100}%\n"
-            msg += f"#### 可用资金 : {bal}U, 页面杠杆 : {LEVERAGE}, 实际杠杆 : {round(LEVERAGE*MAX_BALANCE,2)}\n"
+            msg += f"#### 账户权益 : {wal}U\n"
             msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
 
             for k, v in d.items():
@@ -180,6 +179,10 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 过滤因子 : f_bias: {OPEN_LEVEL} close>sma{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : f_sma: {CLOSE_LEVEL} close>sma{CLOSE_PERIOD}\n"
         msg += f"#### 平仓因子 : {CLOSE_FACTOR}: {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
+        msg += f"#### 账户余额 : {round(bal,2)}U\n"
+        msg += f"#### 页面杠杆 : {LEVERAGE}\n"
+        msg += f"#### 资金上限 : {MAX_BALANCE*100}%\n"
+        msg += f"#### 实际杠杆 : {round(LEVERAGE*MAX_BALANCE,2)}\n"
 
         r = sendMixin(msg, _type="PLAIN_POST")
 
