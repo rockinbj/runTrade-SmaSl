@@ -91,7 +91,7 @@ LOG_LEVEL_FILE = logging.DEBUG
 
 
 # 报告发送间隔分钟
-REPORT_INTERVAL = 2
+REPORT_INTERVAL = 30
 # 是否拨打电话
 CALL_ALARM = True
 
