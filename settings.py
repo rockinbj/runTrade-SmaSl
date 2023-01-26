@@ -1,5 +1,5 @@
 # 策略命名
-STRATEGY_NAME = "鹤-Sma-Test"
+STRATEGY_NAME = "鹤-SmaEma-Test"
 IS_TEST = False
 
 # 轮动池黑白名单,格式"BTC/USDT"
