@@ -1,6 +1,7 @@
 # 策略命名
 STRATEGY_NAME = "鹤-SmaEma-Test"
 IS_TEST = False
+SKIP_TRADE = True
 
 # 轮动池黑白名单,格式"BTC/USDT"
 SYMBOLS_WHITE = []
