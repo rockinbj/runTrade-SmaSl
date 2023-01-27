@@ -346,11 +346,11 @@ def getKlines(exchangeId, level, amount, symbols):
         ) + dt.timedelta(hours=8)
         k = k[:-1]
         if len(k) + 1 < amount:
-            logger.debug(f"{symbol}k线数量{len(k) + 1}少于要求{amount}, 剔除该币种")
+            logger.debug(f"{symbol} k线数量 {len(k) + 1} 少于要求 {amount}, 剔除该币种")
             continue
         # k = k[["candle_begin_time", "close"]]
         klines[symbol] = k
-        logger.debug(f"获取到{symbol} k线{len(k)}根")
+        logger.debug(f"获取到 {symbol} k线 {len(k)}")
 
         if len(symbols) > 1:
             time.sleep(SLEEP_SHORT)
@@ -447,6 +447,7 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
 
 
 def setFilter(kDict, _filters):
+    kDf = pd.DataFrame()
     for symbol, df in kDict.copy().items():
         _dfList = []
         for fName, fParas in _filters.items():
@@ -466,28 +467,30 @@ def setFilter(kDict, _filters):
             # 或者使用list(kDict)，相当于遍历dict keys的列表，就不受限制了
             # 需要用到df作为原始数据，因此选择第一种办法
             del kDict[symbol]
+            continue
         else:
             kDict[symbol].sort_values("candle_begin_time", inplace=True)
+            kDf = pd.concat([kDf, kDict[symbol]], ignore_index=True)
 
-    return kDict
+    return kDf
 
 
 def setFactor(klinesDict: dict, openFactor, openPeriod):
-    kDf = pd.DataFrame()
     for symbol, df in klinesDict.items():
+        df.sort_values("candle_begin_time", inplace=True)
         df["symbol"] = symbol
         # 计算开仓factor
         nameOF = f"openFactor"
         df[nameOF] = getattr(signals, openFactor)(df, openPeriod)
-        kDf = pd.concat([kDf, df], ignore_index=True)
-        time.sleep(0.01)
+        klinesDict[symbol] = df
 
-    return kDf
+    return klinesDict
 
 
 def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
     # 选币因子排名
     if not klinesDf.empty:
+        klinesDf.sort_values("candle_begin_time", inplace=True)
         klinesDf["rank"] = klinesDf.groupby("candle_begin_time")["openFactor"].rank(ascending=False)
         klinesDf.sort_values(by=["candle_begin_time", "rank"], inplace=True)
         pd.set_option('display.max_rows', len(klinesDf) + 100)

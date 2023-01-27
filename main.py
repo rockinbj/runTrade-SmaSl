@@ -85,22 +85,23 @@ def main():
         )
         logger.info(f"共获取合格的k线币种 {len(kDict)}")
 
-        # 过滤因子筛选币池
-        kDict = setFilter(kDict, _filters=FILTER_FACTORS)
-        logger.info(f"过滤因子筛选后的币种 {len(kDict)}")
-        if len(kDict) == 0:
-            sendAndPrintInfo(f"{STRATEGY_NAME} 本周期无合格币种，等待下一周期\n\n\n")
-            continue
-
-        # 计算开仓和平仓因子
-        kDf = setFactor(
+        # 先计算开仓因子，再过滤，再选币，
+        # 因为开仓因子需要连续k线，过滤之后会造成k线不连续，开仓因子计算错误
+        kDict = setFactor(
             klinesDict=kDict,
             openFactor=OPEN_FACTOR,
             openPeriod=OPEN_PERIOD,
         )
         # logger.debug(f"计算开仓平仓因子结果:\n{kDf}")
 
-        # 计算选币结果
+        # 用过滤因子筛选币池
+        kDf = setFilter(kDict, _filters=FILTER_FACTORS)
+        logger.info(f"过滤因子筛选后的币种 {len(kDict)}")
+        if len(kDict) == 0:
+            sendAndPrintInfo(f"{STRATEGY_NAME} 本周期无合格币种，等待下一周期\n\n\n")
+            continue
+
+        # 选币
         kDf = getChosen(
             klinesDf=kDf,
             selectNum=SELECTION_NUM,
