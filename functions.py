@@ -331,7 +331,7 @@ def getBalance(exchange, asset="usdt"):
 def getKlines(exchangeId, level, amount, symbols):
     # getKlines要在子进程里使用, 进程之间不能直接传递ccxt实例, 因此只能在进程内部创建实例
     exchange = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
-    amount += NEW_KLINE_NUM
+    # amount += NEW_KLINE_NUM
     klines = {}
 
     for symbol in symbols:

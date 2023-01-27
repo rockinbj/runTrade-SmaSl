@@ -81,7 +81,7 @@ def main():
             exchangeId=exId,
             symbols=symbols,
             level=OPEN_LEVEL,
-            amount=len(OFFSET_LIST) + OPEN_PERIOD,
+            amount=NEW_KLINE_NUM,
         )
         logger.info(f"共获取合格的k线币种 {len(kDict)}")
 
