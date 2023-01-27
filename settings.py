@@ -1,6 +1,6 @@
 # 策略命名
 STRATEGY_NAME = "鹤-SmaEma-Test"
-IS_TEST = False
+IS_TEST = True
 SKIP_TRADE = True
 
 # 轮动池黑白名单,格式"BTC/USDT"
@@ -22,8 +22,8 @@ OPEN_LEVEL = "1h"
 OPEN_PERIOD = 6
 
 # 持仓时间，offset
-HOLD_TIME = "48h"
-OFFSET_LIST = [0,12,24,36]
+HOLD_TIME = "24h"
+OFFSET_LIST = [0,8,16]
 
 # 平仓参数，例如4h级别close小于MA30
 CLOSE_LEVEL = "4h"
