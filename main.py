@@ -72,7 +72,7 @@ def main():
             _type=TYPE,
             n=TOP,
         )
-        symbols = list((set(symbols) | set(SYMBOLS_WHITE)) - set(SYMBOLS_BLACK))
+        symbols = sorted(list((set(symbols) | set(SYMBOLS_WHITE)) - set(SYMBOLS_BLACK)))
         logger.info(f"Top{TOP}筛选和合并黑白名单之后, 币池列表共 {len(symbols)}")
         # logger.debug(f"币池列表:\n{_n.join(symbols)}")
 
