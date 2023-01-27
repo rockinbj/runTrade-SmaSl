@@ -447,11 +447,24 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
 
 
 def setFilter(kDict, _filters):
-    for symbol, df in kDict.items():
+    for symbol, df in kDict.copy().items():
+        _dfList = []
         for fName, fParas in _filters.items():
             _cls = __import__("filters")
-            kDict[symbol] = getattr(_cls, fName)(kDict[symbol], fParas)
+            _df = getattr(_cls, fName)(df, fParas)
+            # 将时间作为索引，后面需要根据时间来取交集
+            _df = _df.reset_index().set_index("candle_begin_time", drop=True)
+            _dfList.append(_df)
+        # filter完之后取交集, 交集中有两表的重复列，
+        # T旋转-->去重-->T再旋转回来，就把重复列去掉了，nb！
+        kDict[symbol] = pd.concat(_dfList, axis=1, join="inner").T.drop_duplicates().T
+        kDict[symbol].reset_index(inplace=True)
+
         if kDict[symbol].empty or kDict[symbol] is None:
+            # 这里有删除键值的动作，在遍历dict的循环中不允许改变dict的键值数量
+            # 因此使用了kDict.copy().items()，
+            # 或者使用list(kDict)，相当于遍历dict keys的列表，就不受限制了
+            # 需要用到df作为原始数据，因此选择第一种办法
             del kDict[symbol]
         else:
             kDict[symbol].sort_values("candle_begin_time", inplace=True)
