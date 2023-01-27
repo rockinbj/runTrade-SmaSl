@@ -1,7 +1,7 @@
 # 策略命名
 STRATEGY_NAME = "鹤-Sma-Test"
 IS_TEST = False
-SKIP_TRADE = True
+SKIP_TRADE = False
 
 # 轮动池黑白名单,格式"BTC/USDT"
 SYMBOLS_WHITE = []
@@ -18,15 +18,15 @@ SELECTION_NUM = 1
 
 # 开仓参数，4h*3，例如12小时bias因子涨幅排行
 OPEN_FACTOR = "s_bias"
-OPEN_LEVEL = "5m"
-OPEN_PERIOD = 48
+OPEN_LEVEL = "1h"
+OPEN_PERIOD = 12
 
 # 持仓时间，offset
-HOLD_TIME = "30m"
-OFFSET_LIST = [0,1,3,4]
+HOLD_TIME = "24h"
+OFFSET_LIST = [0,8,16]
 
 # 平仓参数，例如4h级别close小于MA30
-CLOSE_LEVEL = "30m"
+CLOSE_LEVEL = "4h"
 CLOSE_FACTOR = "s_sma"
 CLOSE_PERIOD = 20
 CLOSE_METHOD = "less"
@@ -47,7 +47,7 @@ FILTER_FACTORS = {
 }
 
 # 页面杠杆率
-LEVERAGE = 2
+LEVERAGE = 3
 # 资金上限，控制实际杠杆率
 MAX_BALANCE = 50 / 100
 # 保证金模式
