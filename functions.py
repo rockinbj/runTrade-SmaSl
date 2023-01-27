@@ -331,7 +331,7 @@ def getBalance(exchange, asset="usdt"):
 def getKlines(exchangeId, level, amount, symbols):
     # getKlines要在子进程里使用, 进程之间不能直接传递ccxt实例, 因此只能在进程内部创建实例
     exchange = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
-    amount += NEW_KLINE_NUM
+    # amount += NEW_KLINE_NUM
     klines = {}
 
     for symbol in symbols:
@@ -346,11 +346,11 @@ def getKlines(exchangeId, level, amount, symbols):
         ) + dt.timedelta(hours=8)
         k = k[:-1]
         if len(k) + 1 < amount:
-            logger.debug(f"{symbol}k线数量{len(k) + 1}少于要求{amount}, 剔除该币种")
+            logger.debug(f"{symbol} k线数量 {len(k) + 1} 少于要求 {amount}, 剔除该币种")
             continue
         # k = k[["candle_begin_time", "close"]]
         klines[symbol] = k
-        logger.debug(f"获取到{symbol} {level} k线 {len(k)}")
+        logger.debug(f"获取到 {symbol} k线 {len(k)}")
 
         if len(symbols) > 1:
             time.sleep(SLEEP_SHORT)
@@ -359,7 +359,7 @@ def getKlines(exchangeId, level, amount, symbols):
 
 
 def getKlineForSymbol(exchange, level, amount, symbol):
-    amount += NEW_KLINE_NUM
+    # amount += NEW_KLINE_NUM
 
     k = exchange.fetchOHLCV(symbol, level, limit=amount)
     k = pd.DataFrame(
@@ -382,7 +382,7 @@ def getKlinesMulProc(exchangeId, symbols, level, amount):
     singleGetKlines = partial(getKlines, exchangeId, level, amount)
     # pNum = min(cpu_count(), len(symbols))
     pNum = len(symbols)
-    logger.info(f"开启{pNum}线程获取k线")
+    logger.info(f"开启 {pNum} 线程获取k线")
     with TPool(processes=pNum) as pool:
         kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
         kNew = [i for i in kNew if i]  # 去空
@@ -447,7 +447,7 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
 
 
 def setFilter(kDict, _filters):
-    # for symbol in list(kDict):
+    kDf = pd.DataFrame()
     for symbol, df in kDict.copy().items():
         _dfList = []
         for fName, fParas in _filters.items():
@@ -467,28 +467,30 @@ def setFilter(kDict, _filters):
             # 或者使用list(kDict)，相当于遍历dict keys的列表，就不受限制了
             # 需要用到df作为原始数据，因此选择第一种办法
             del kDict[symbol]
+            continue
         else:
             kDict[symbol].sort_values("candle_begin_time", inplace=True)
-    # kDict = {i:kDict[i] for i in kDict if not kDict[i].empty or not None}  # 去空
-    return kDict
+            kDf = pd.concat([kDf, kDict[symbol]], ignore_index=True)
+
+    return kDf
 
 
 def setFactor(klinesDict: dict, openFactor, openPeriod):
-    kDf = pd.DataFrame()
     for symbol, df in klinesDict.items():
+        df.sort_values("candle_begin_time", inplace=True)
         df["symbol"] = symbol
         # 计算开仓factor
         nameOF = f"openFactor"
         df[nameOF] = getattr(signals, openFactor)(df, openPeriod)
-        kDf = pd.concat([kDf, df], ignore_index=True)
-        time.sleep(0.01)
+        klinesDict[symbol] = df
 
-    return kDf
+    return klinesDict
 
 
 def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
     # 选币因子排名
     if not klinesDf.empty:
+        klinesDf.sort_values("candle_begin_time", inplace=True)
         klinesDf["rank"] = klinesDf.groupby("candle_begin_time")["openFactor"].rank(ascending=False)
         klinesDf.sort_values(by=["candle_begin_time", "rank"], inplace=True)
         # pd.set_option('display.max_rows', len(klinesDf) + 100)
@@ -534,26 +536,41 @@ def getSignal(posAim: pd.DataFrame, posNow: pd.DataFrame):
     return sig
 
 
-def checkStoploss(exchange, markets, posNow: pd.DataFrame, closeFactor, closeLevel, closePeriod, closeMethod):
+def checkStoploss(exchange, markets, posNow: pd.DataFrame,
+                  closeFactor, closeLevel, closeMethod,
+                  closePeriods):
     pos = posNow.copy()
     symbols = pos.index.tolist()
     kDict = getKlinesMulProc(
         exchangeId=exchange.id,
         symbols=symbols,
         level=closeLevel,
-        amount=closePeriod,
+        amount=max(closePeriods)+100,  # 要根据最大均线周期定数量，如果用EMA需要大量k线
     )
     # 检查每个币种是否满足closeFactor的止损条件
     for symbol, df in kDict.items():
         df["symbol"] = symbol
-        df["closeFactor"] = getattr(signals, closeFactor)(df, closePeriod)
+        names = []
+        _stop = False
+        for k, v in enumerate(closePeriods):
+            name = closeFactor + str(k)
+            names.append(name)
+            df[name] = getattr(signals, closeFactor)(df, v)
 
         if closeMethod == "less":
-            if df.iloc[-1]["close"] < df.iloc[-1]["closeFactor"]:
-                closePositionForce(exchange, markets, posNow, symbol)
-                sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}满足closeFactor已平仓")
-        elif closeMethod == "XXX":
+            # 要求CLOSE_METHOD=[]列表元素数量为1
+            if df.iloc[-1]["close"] < df.iloc[-1][names[0]]:
+                _stop = True
+        elif closeMethod == "sma1LtSma2":
+            # 要求CLOSE_METHOD=[]列表元素数量为2
+            if df.iloc[-1][names[0]] < df.iloc[-1][names[1]]:
+                _stop = True
+        elif closeMethod == "xxx":
             pass
+
+        if _stop is True:
+            closePositionForce(exchange, markets, posNow, symbol)
+            sendAndPrintInfo(f"{STRATEGY_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
 
 
 @retry(

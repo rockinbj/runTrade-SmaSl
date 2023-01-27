@@ -1,7 +1,7 @@
 # 策略命名
-STRATEGY_NAME = "鹤-Sma-Test"
-IS_TEST = False
-SKIP_TRADE = False
+STRATEGY_NAME = "鹤-offset-Test"
+IS_TEST = True
+SKIP_TRADE = True
 
 # 轮动池黑白名单,格式"BTC/USDT"
 SYMBOLS_WHITE = []
@@ -19,7 +19,7 @@ SELECTION_NUM = 1
 # 开仓参数，4h*3，例如12小时bias因子涨幅排行
 OPEN_FACTOR = "s_bias"
 OPEN_LEVEL = "1h"
-OPEN_PERIOD = 12
+OPEN_PERIOD = 6
 
 # 持仓时间，offset
 HOLD_TIME = "24h"
@@ -28,8 +28,9 @@ OFFSET_LIST = [0,8,16]
 # 平仓参数，例如4h级别close小于MA30
 CLOSE_LEVEL = "4h"
 CLOSE_FACTOR = "s_sma"
-CLOSE_PERIOD = 20
+CLOSE_PERIODS = [20]  # 必须是list, method=="less"放一个元素, method="sma1LtSma2"放两个
 CLOSE_METHOD = "less"
+# CLOSE_METHOD = "sma1LtSma2"
 
 # 过滤因子，涨幅下限，小于此则排除
 FILTER_FACTORS = {
@@ -39,15 +40,20 @@ FILTER_FACTORS = {
         "base": 0 / 100,
         "gt": True,
     },
+    # "f_ema_trend": {
+    #     "level": CLOSE_LEVEL,
+    #     "periods": [20,60,120],
+    #     "long": True,
+    # },
     "f_sma": {
         "level": CLOSE_LEVEL,
-        "period": CLOSE_PERIOD,
+        "period": CLOSE_PERIODS[0],
         "gt": True,
-    }
+    },
 }
 
 # 页面杠杆率
-LEVERAGE = 3
+LEVERAGE = 2
 # 资金上限，控制实际杠杆率
 MAX_BALANCE = 50 / 100
 # 保证金模式
@@ -57,7 +63,8 @@ MARGIN_TYPE = "CROSSED"
 SLIPPAGE = 1.5 / 100
 
 # 获取最新k线的数量
-NEW_KLINE_NUM = 300
+# 有使用EMA的计算需要大量k线让长均线(120)收敛到接近值
+NEW_KLINE_NUM = 1500
 # 本轮开始之前的预留秒数，小于预留秒数则顺延至下轮
 AHEAD_SEC = 3
 # 向前偏移秒数，为了避免在同一时间下单造成踩踏
@@ -71,7 +78,7 @@ CALL_ALARM = True
 # 设置Log
 import logging
 LOG_PATH = "log"
-LOG_LEVEL_CONSOLE = logging.INFO
+LOG_LEVEL_CONSOLE = logging.DEBUG
 LOG_LEVEL_FILE = logging.DEBUG
 
 # 休眠时间
