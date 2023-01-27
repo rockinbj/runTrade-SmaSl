@@ -152,7 +152,7 @@ def main():
                 logger.info(f"本周期无下单结果")
 
         del mkts, balance, posNow, posAim, tickers, symbols, kDict, kDf, sig
-        logger.info(f"本周期操作结束, 进入下一周期\n\n\n")
+        logger.info(f"进入下一周期\n\n\n")
         if IS_TEST: exit()
 
 
