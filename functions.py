@@ -179,8 +179,8 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
         msg += f"#### 选币数量 : {SELECTION_NUM}\n"
         msg += f"#### 开仓因子 : {OPEN_FACTOR}: {OPEN_LEVEL}*{OPEN_PERIOD}\n"
-        msg += f"#### 过滤因子 : f_bias: {OPEN_LEVEL} close>sma{OPEN_PERIOD}\n"
-        msg += f"#### 过滤因子 : f_ema_trend: {CLOSE_LEVEL} long:{FILTER_FACTORS['f_ema_trend']['long']}\n"
+        msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[0]}: {OPEN_LEVEL} {OPEN_PERIOD}\n"
+        msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[1]}: {CLOSE_LEVEL}\n"
         msg += f"#### 平仓因子 : {CLOSE_FACTOR}: {CLOSE_LEVEL} {CLOSE_PERIODS[0]}<{CLOSE_PERIODS[1]}\n"
         msg += f"#### 账户余额 : {round(bal, 2)}U\n"
         msg += f"#### 页面杠杆 : {LEVERAGE}\n"
@@ -382,7 +382,7 @@ def getKlinesMulProc(exchangeId, symbols, level, amount):
     singleGetKlines = partial(getKlines, exchangeId, level, amount)
     # pNum = min(cpu_count(), len(symbols))
     pNum = len(symbols)
-    logger.debug(f"开启{pNum}线程获取k线")
+    logger.info(f"开启 {pNum} 线程获取k线")
     with TPool(processes=pNum) as pool:
         kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
         kNew = [i for i in kNew if i]  # 去空
