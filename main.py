@@ -1,4 +1,4 @@
-# this is code for offset branch
+# this is code for SmaEma branch
 from multiprocessing import current_process
 
 from functions import *
