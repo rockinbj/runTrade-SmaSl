@@ -3,7 +3,7 @@ import json
 from functools import partial
 from functools import reduce
 # from multiprocessing import Pool, cpu_count
-from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing.pool import ThreadPool as TPool
 
 import ccxt
 import pandas as pd
@@ -383,7 +383,7 @@ def getKlinesMulProc(exchangeId, symbols, level, amount):
     # pNum = min(cpu_count(), len(symbols))
     pNum = len(symbols)
     logger.debug(f"开启{pNum}线程获取k线")
-    with Pool(processes=pNum) as pool:
+    with TPool(processes=pNum) as pool:
         kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
         kNew = [i for i in kNew if i]  # 去空
     klinesDict = {list(i.keys())[0]: list(i.values())[0] for i in kNew}

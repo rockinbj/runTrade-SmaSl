@@ -1,5 +1,6 @@
 # this is code for SmaEma branch
 from multiprocessing import current_process
+from multiprocessing import Pool as PPool
 
 from functions import *
 from settings import *
@@ -23,7 +24,7 @@ def main():
     exId = EXCHANGE
 
     # 开启一个非阻塞的报告进程
-    rptpool = Pool(1)
+    rptpool = PPool(1)
     rptpool.apply_async(reporter, args=(EXCHANGE, REPORT_INTERVAL))
     _n = "\n"
 

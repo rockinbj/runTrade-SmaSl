@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 import pandas_ta as ta
 from logger import *
-from functions import resampleKlines, getKlineForSymbol
+from functions import resampleKlines
 
 logger = logging.getLogger("app.filt")
 

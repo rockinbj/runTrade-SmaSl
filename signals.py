@@ -9,9 +9,6 @@ pd.set_option('display.max_rows', 5000)  # 最多显示数据的行数
 logger = logging.getLogger("app.sig")
 
 
-# 所有signal都要输出一个带有chosen列的df，是选出的交易币种
-# 传递给getPosition()，作为下一周期持仓依据
-
 # 计算周期内的涨幅
 # 例如20日涨幅
 def s_mtm(df, para=20):
@@ -50,7 +47,6 @@ def s_ema(df, para=20):
 def s_test(df, para):
     df.sort_values("candle_begin_time", inplace=True)
     name = "signalTest"
-    n = para
     df = df.copy()
     df[name] = random.random() * -1
 
