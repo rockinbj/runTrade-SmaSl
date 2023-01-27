@@ -58,7 +58,7 @@ MARGIN_TYPE = "CROSSED"
 SLIPPAGE = 1.5 / 100
 
 # 获取最新k线的数量
-NEW_KLINE_NUM = 500
+NEW_KLINE_NUM = 600
 # 本轮开始之前的预留秒数，小于预留秒数则顺延至下轮
 AHEAD_SEC = 3
 # 向前偏移秒数，为了避免在同一时间下单造成踩踏
