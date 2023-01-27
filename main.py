@@ -73,7 +73,7 @@ def main():
             _type=TYPE,
             n=TOP,
         )
-        symbols = list((set(symbols) | set(SYMBOLS_WHITE)) - set(SYMBOLS_BLACK))
+        symbols = sorted(list((set(symbols) | set(SYMBOLS_WHITE)) - set(SYMBOLS_BLACK)))
         logger.info(f"Top{TOP}筛选和合并黑白名单之后, 币池列表共 {len(symbols)}")
         # logger.debug(f"币池列表:\n{_n.join(symbols)}")
 
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         try:
             main()
         except Exception as e:
-            sendAndPrintError(f"主程序异常, 自动重启, 请检查{e}")
+            sendAndPrintError(f"{STRATEGY_NAME} 主程序异常, 自动重启, 请检查{e}")
             logger.exception(e)
             continue
 

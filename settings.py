@@ -1,6 +1,6 @@
 # 策略命名
 STRATEGY_NAME = "鹤-Sma-Test"
-IS_TEST = True
+IS_TEST = False
 SKIP_TRADE = True
 
 # 轮动池黑白名单,格式"BTC/USDT"
@@ -64,14 +64,14 @@ AHEAD_SEC = 3
 OFFSET_SEC = 0
 
 # 报告发送间隔分钟
-REPORT_INTERVAL = 2
+REPORT_INTERVAL = 30
 # 重要告警是否拨打电话
 CALL_ALARM = True
 
 # 设置Log
 import logging
 LOG_PATH = "log"
-LOG_LEVEL_CONSOLE = logging.DEBUG
+LOG_LEVEL_CONSOLE = logging.INFO
 LOG_LEVEL_FILE = logging.DEBUG
 
 # 休眠时间
