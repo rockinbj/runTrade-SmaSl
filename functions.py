@@ -671,9 +671,16 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
                 sendAndPrintError(f"{STRATEGY_NAME} 下单出错: {_orderP[idx]}  {v}")
 
     # 整理订单回执，去掉无用信息
+    # Order Response Format:
+    # [{'orderId': '20901193940', 'symbol': 'LTCUSDT', 'status': 'FILLED', 'clientOrderId': 'Rock1674768603670',
+    # 'price': '85.39', 'avgPrice': '87.13000', 'origQty': '10.087', 'executedQty': '10.087',
+    # 'cumQuote': '878.88031', 'timeInForce': 'GTC', 'type': 'LIMIT', 'reduceOnly': True,
+    # 'closePosition': False, 'side': 'SELL', 'positionSide': 'LONG', 'stopPrice': '0',
+    # 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'LIMIT', 'time': '1674768603876',
+    # 'updateTime': '1674768603876'}, ...]
     if orderResp:
         for k, v in enumerate(orderResp):
-            orderResp[k] = [v["side"], v["symbol"]]
+            orderResp[k] = [v["side"], v["symbol"], v["cumQuote"]]
         orderResp = "\n".join([str(i) for i in orderResp])
     return orderResp
 
