@@ -1,5 +1,6 @@
 import random
 import pandas as pd
+import pandas_ta as ta
 
 from logger import *
 
@@ -37,7 +38,7 @@ def s_ema(df, para=20):
     n = para
     df = df.copy()
     name = "ema" + str(n)
-    df[name] = pd.DataFrame.ewm(df["close"], span=n).mean()
+    df[name] = ta.ema(df["close"], length=n)
     return df[name]
 
 

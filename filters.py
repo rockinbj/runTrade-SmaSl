@@ -89,10 +89,11 @@ def f_ema_trend(df, params):
     p1 = "ema" + str(periods[0])
     p2 = "ema" + str(periods[1])
     p3 = "ema" + str(periods[2])
+    df1.sort_values("candle_begin_time", inplace=True)
     df1[p1] = ta.ema(df1["close"], length=periods[0])
     df1[p2] = ta.ema(df1["close"], length=periods[1])
     df1[p3] = ta.ema(df1["close"], length=periods[2])
-    df1.sort_values("candle_begin_time", inplace=True)
+
     df.sort_values("candle_begin_time", inplace=True)
     df.set_index("candle_begin_time", drop=True, inplace=True)
     df1.set_index("candle_begin_time", drop=True, inplace=True)
