@@ -14,9 +14,14 @@ def f_sma(df, params):
     # gt==False: close < sma
     level, period, gt = params["level"], params["period"], params["gt"]
     df = df.copy()
-    df = resampleKlines(df, level)
-    df["sma"] = df["close"].rolling(period).mean()
+    df1 = resampleKlines(df, level)
+    df1["sma"] = round(df1["close"].rolling(period).mean(),4)
+    df1.sort_values("candle_begin_time", inplace=True)
     df.sort_values("candle_begin_time", inplace=True)
+    df.set_index("candle_begin_time", drop=True, inplace=True)
+    df1.set_index("candle_begin_time", drop=True, inplace=True)
+    df["sma"] = df1["sma"]
+    df["sma"].fillna(method="ffill", inplace=True)
 
     if gt is True:
         df = df.loc[df["close"] > df["sma"]]
@@ -53,10 +58,16 @@ def f_bias(df, params):
     # gt==False: value < base
     level, period, base, gt = params["level"], params["period"], params["base"], params["gt"]
     df = df.copy()
-    df = resampleKlines(df, level)
-    df["sma"] = df["close"].rolling(period).mean()
-    df["bias"] = df["close"] / df["sma"] - 1
+    df1 = resampleKlines(df, level)
+    df1["sma"] = df1["close"].rolling(period).mean()
+    # 3位小数，相当于必须>0.01%才有数据，否则就是0
+    df1["bias"] = round(df1["close"] / df1["sma"] - 1,4)
+    df1.sort_values("candle_begin_time", inplace=True)
     df.sort_values("candle_begin_time", inplace=True)
+    df.set_index("candle_begin_time", drop=True, inplace=True)
+    df1.set_index("candle_begin_time", drop=True, inplace=True)
+    df["bias"] = df1["bias"]
+    df["bias"].fillna(method="ffill", inplace=True)
 
     if gt is True:
         df = df.loc[df["bias"] > base]
@@ -72,13 +83,22 @@ def f_ema_trend(df, params):
     # long==True: ema20>ema60>ema120
     # long==False: ema20<ema60<ema120
     df = df.copy()
-    periods, long = params["periods"], params["long"]
+    level, periods, long = params["level"], params["periods"], params["long"]
+    df1 = resampleKlines(df, level)
     p1 = "ema" + str(periods[0])
     p2 = "ema" + str(periods[1])
     p3 = "ema" + str(periods[2])
-    df[p1] = pd.DataFrame.ewm(df["close"], span=periods[0]).mean()
-    df[p2] = pd.DataFrame.ewm(df["close"], span=periods[1]).mean()
-    df[p3] = pd.DataFrame.ewm(df["close"], span=periods[2]).mean()
+    df1[p1] = pd.DataFrame.ewm(df1["close"], span=periods[0]).mean()
+    df1[p2] = pd.DataFrame.ewm(df1["close"], span=periods[1]).mean()
+    df1[p3] = pd.DataFrame.ewm(df1["close"], span=periods[2]).mean()
+    df1.sort_values("candle_begin_time", inplace=True)
+    df.sort_values("candle_begin_time", inplace=True)
+    df.set_index("candle_begin_time", drop=True, inplace=True)
+    df1.set_index("candle_begin_time", drop=True, inplace=True)
+    df[p1] = df1[p1]
+    df[p2] = df1[p2]
+    df[p3] = df1[p3]
+    df[[p1, p2, p3]] = df[[p1, p2, p3]].fillna(method="ffill")
 
     if long is True:
         df = df.loc[(df[p1] > df[p2]) & (df[p2] > df[p3])]
