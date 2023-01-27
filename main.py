@@ -54,7 +54,7 @@ def main():
         )
 
         # 检查止损
-        if not posNow.empty:
+        if not posNow.empty and SKIP_TRADE is False:
             checkStoploss(
                 exchange=ex,
                 markets=mkts,
@@ -137,7 +137,7 @@ def main():
         logger.info(f"当前持仓与目标持仓合并后的交易信号:\n{sig}")
 
         # 根据交易信号执行订单
-        if not sig.empty:
+        if not sig.empty and SKIP_TRADE is False:
             prices = getPrices(exchange=ex)
             ordersResp = placeOrder(
                 exchange=ex,
