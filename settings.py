@@ -1,6 +1,6 @@
 # 策略命名
 STRATEGY_NAME = "鹤-Sma-Test"
-IS_TEST = False
+IS_TEST = True
 SKIP_TRADE = True
 
 # 轮动池黑白名单,格式"BTC/USDT"
@@ -18,15 +18,15 @@ SELECTION_NUM = 1
 
 # 开仓参数，4h*3，例如12小时bias因子涨幅排行
 OPEN_FACTOR = "s_bias"
-OPEN_LEVEL = "1h"
-OPEN_PERIOD = 6
+OPEN_LEVEL = "5m"
+OPEN_PERIOD = 48
 
 # 持仓时间，offset
-HOLD_TIME = "48h"
-OFFSET_LIST = [0,12,24,36]
+HOLD_TIME = "30m"
+OFFSET_LIST = [0,1,3,4]
 
 # 平仓参数，例如4h级别close小于MA30
-CLOSE_LEVEL = "4h"
+CLOSE_LEVEL = "30m"
 CLOSE_FACTOR = "s_sma"
 CLOSE_PERIOD = 20
 CLOSE_METHOD = "less"
@@ -64,14 +64,14 @@ AHEAD_SEC = 3
 OFFSET_SEC = 0
 
 # 报告发送间隔分钟
-REPORT_INTERVAL = 30
+REPORT_INTERVAL = 2
 # 重要告警是否拨打电话
 CALL_ALARM = True
 
 # 设置Log
 import logging
 LOG_PATH = "log"
-LOG_LEVEL_CONSOLE = logging.INFO
+LOG_LEVEL_CONSOLE = logging.DEBUG
 LOG_LEVEL_FILE = logging.DEBUG
 
 # 休眠时间

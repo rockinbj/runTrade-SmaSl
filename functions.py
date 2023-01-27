@@ -382,7 +382,7 @@ def getKlinesMulProc(exchangeId, symbols, level, amount):
     singleGetKlines = partial(getKlines, exchangeId, level, amount)
     # pNum = min(cpu_count(), len(symbols))
     pNum = len(symbols)
-    logger.debug(f"开启{pNum}线程获取k线")
+    logger.info(f"开启{pNum}线程获取k线")
     with TPool(processes=pNum) as pool:
         kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
         kNew = [i for i in kNew if i]  # 去空
@@ -447,11 +447,13 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
 
 
 def setFilter(kDict, _filters):
-    for symbol, df in kDict.items():
+    for symbol in list(kDict):
         for fName, fParas in _filters.items():
             _cls = __import__("filters")
             kDict[symbol] = getattr(_cls, fName)(kDict[symbol], fParas)
         if kDict[symbol].empty or kDict[symbol] is None:
+            # 这里有删除键值的动作，在遍历dict的循环中不允许改变dict的键值数量
+            # 因此使用了list(kDict)，相当于遍历dict keys的列表，就不受限制了
             del kDict[symbol]
         else:
             kDict[symbol].sort_values("candle_begin_time", inplace=True)
@@ -477,7 +479,7 @@ def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
     if not klinesDf.empty:
         klinesDf["rank"] = klinesDf.groupby("candle_begin_time")["openFactor"].rank(ascending=False)
         klinesDf.sort_values(by=["candle_begin_time", "rank"], inplace=True)
-        pd.set_option('display.max_rows', len(klinesDf) + 100)
+        # pd.set_option('display.max_rows', len(klinesDf) + 100)
         logger.debug(f"选币排名过程:\n{klinesDf}")
 
         g = klinesDf.groupby("candle_begin_time")
