@@ -493,7 +493,7 @@ def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
         klinesDf.sort_values("candle_begin_time", inplace=True)
         klinesDf["rank"] = klinesDf.groupby("candle_begin_time")["openFactor"].rank(ascending=False)
         klinesDf.sort_values(by=["candle_begin_time", "rank"], inplace=True)
-        pd.set_option('display.max_rows', len(klinesDf) + 100)
+        # pd.set_option('display.max_rows', len(klinesDf) + 100)
         logger.debug(f"选币排名过程:\n{klinesDf}")
 
         g = klinesDf.groupby("candle_begin_time")
@@ -512,10 +512,10 @@ def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
 
 def getPosAim(chosen: pd.DataFrame, balance, leverage, offsetList, selectNum):
     eachCost = balance * leverage / len(offsetList) / selectNum
-    logger.debug(f"每仓位使用资金: {eachCost}")
+    logger.info(f"每仓位使用资金: {eachCost}")
     # 计算每offset应当持有的币种数量
     chosen["amount"] = eachCost / chosen["close"] * chosen["side"]
-    logger.debug(f"每个offset应当持仓数量:\n{chosen}")
+    logger.info(f"每个offset应当持仓数量:\n{chosen}")
     # 合并所有offset应当持有的币种数量, 计算出目标仓位
     df = chosen.groupby("symbol")[["amount"]].sum()
     df.index.name = None
@@ -545,7 +545,7 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
         exchangeId=exchange.id,
         symbols=symbols,
         level=closeLevel,
-        amount=max(closePeriods),
+        amount=max(closePeriods)+100,  # 要根据最大均线周期定数量，如果用EMA需要大量k线
     )
     # 检查每个币种是否满足closeFactor的止损条件
     for symbol, df in kDict.items():
@@ -558,15 +558,19 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
             df[name] = getattr(signals, closeFactor)(df, v)
 
         if closeMethod == "less":
+            # 要求CLOSE_METHOD=[]列表元素数量为1
             if df.iloc[-1]["close"] < df.iloc[-1][names[0]]:
                 _stop = True
         elif closeMethod == "sma1LtSma2":
+            # 要求CLOSE_METHOD=[]列表元素数量为2
             if df.iloc[-1][names[0]] < df.iloc[-1][names[1]]:
                 _stop = True
+        elif closeMethod == "xxx":
+            pass
 
         if _stop is True:
             closePositionForce(exchange, markets, posNow, symbol)
-            sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}满足closeFactor已平仓")
+            sendAndPrintInfo(f"{STRATEGY_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
 
 
 @retry(

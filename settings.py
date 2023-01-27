@@ -73,7 +73,7 @@ CALL_ALARM = True
 # 设置Log
 import logging
 LOG_PATH = "log"
-LOG_LEVEL_CONSOLE = logging.INFO
+LOG_LEVEL_CONSOLE = logging.DEBUG
 LOG_LEVEL_FILE = logging.DEBUG
 
 # 休眠时间
