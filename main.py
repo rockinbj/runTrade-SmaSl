@@ -163,7 +163,7 @@ if __name__ == "__main__":
         try:
             main()
         except Exception as e:
-            sendAndPrintError(f"主程序异常, 自动重启, 请检查{e}")
+            sendAndPrintError(f"{STRATEGY_NAME} 主程序异常, 自动重启, 请检查{e}")
             logger.exception(e)
             continue
 
