@@ -15,7 +15,11 @@ def reporter(exchangeId, interval):
     process = current_process()
     process.name = "Reporter"
     while True:
-        sendReport(exchangeId, interval)
+        try:
+            sendReport(exchangeId, interval)
+        except Exception as e:
+            sendAndPrintError(f"{STRATEGY_NAME} 发送报告错误{e}")
+            logger.exception(e)
         time.sleep(0.5)
 
 
