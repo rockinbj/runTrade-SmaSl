@@ -178,9 +178,12 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
 
         msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
         msg += f"#### 选币数量 : {SELECTION_NUM}\n"
+        msg += f"#### 选币分组 : {OFFSET_LIST}\n"
+        msg += f"#### 持仓时间 : {HOLD_TIME}\n"
         msg += f"#### 开仓因子 : {OPEN_FACTOR}: {OPEN_LEVEL}*{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[0]}: {OPEN_LEVEL} {OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[1]}: {CLOSE_LEVEL} {CLOSE_PERIODS[0]}\n"
+        msg += f"#### 平仓因子 : {CLOSE_LEVEL} close<{CLOSE_FACTOR}{CLOSE_PERIODS[0]}\n"
         msg += f"#### 平仓因子 : {CLOSE_LEVEL} close<{CLOSE_FACTOR}{CLOSE_PERIODS[0]}\n"
         msg += f"#### 账户余额 : {round(bal, 2)}U\n"
         msg += f"#### 页面杠杆 : {LEVERAGE}\n"
