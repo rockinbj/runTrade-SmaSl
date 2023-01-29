@@ -26,11 +26,16 @@ def f_sma(df, params):
     df["sma"].fillna(method="ffill", inplace=True)
 
     if gt is True:
+        # 必须先比较最后一根k线得出rNow，然后再过滤
+        # 不然可能先把最后一根k线过滤掉了，导致rNow永远为真
+        rNow = df.iloc[-1]["close"] > df.iloc[-1]["sma"]
         df = df.loc[df["close"] > df["sma"]]
+
     else:
+        rNow = df.iloc[-1]["close"] < df.iloc[-1]["sma"]
         df = df.loc[df["close"] < df["sma"]]
 
-    return df
+    return df, rNow
 
 
 def f_compare(df, params):
@@ -75,11 +80,15 @@ def f_bias(df, params):
     df["bias"].fillna(method="ffill", inplace=True)
 
     if gt is True:
+        # 最后一根k线是否满足过滤
+        rNow = df.iloc[-1]["bias"] > base
         df = df.loc[df["bias"] > base]
+
     else:
+        rNow = df.iloc[-1]["bias"] < base
         df = df.loc[df["bias"] < base]
 
-    return df
+    return df, rNow
 
 
 def f_ema_trend(df, params):
@@ -108,8 +117,12 @@ def f_ema_trend(df, params):
     df[[p1, p2, p3]] = df[[p1, p2, p3]].fillna(method="ffill")
 
     if long is True:
+        rNow = (df.iloc[-1][p1] > df.iloc[-1][p2])\
+               & (df.iloc[-1][p2] > df.iloc[-1][p3])
         df = df.loc[(df[p1] > df[p2]) & (df[p2] > df[p3])]
     else:
+        rNow = (df.iloc[-1][p1] < df.iloc[-1][p2]) \
+               & (df.iloc[-1][p2] < df.iloc[-1][p3])
         df = df.loc[(df[p1] < df[p2]) & (df[p2] < df[p3])]
 
-    return df
+    return df, rNow

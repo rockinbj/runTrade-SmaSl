@@ -90,6 +90,11 @@ def main():
         )
         logger.info(f"共获取合格的k线币种 {len(kDict)}")
 
+        # 前置过滤，剔除最后一根k线不满足过滤条件的币种
+        kDict = setBeforeFilter(kDict, _filters=FILTER_FACTORS)
+        x = set(kDict.keys())
+        logger.info(f"前置过滤因子筛选后的币种 {len(kDict)} 总共k线 {sum(len(s) for s in kDict.values())}")
+
         # 先计算开仓因子，再过滤，再选币，
         # 因为开仓因子需要连续k线，过滤之后会造成k线不连续，开仓因子计算错误
         kDict = setFactor(
@@ -99,9 +104,12 @@ def main():
         )
         # logger.debug(f"计算开仓平仓因子结果:\n{kDf}")
 
-        # 用过滤因子筛选币池
-        kDf = setFilter(kDict, _filters=FILTER_FACTORS)
-        logger.info(f"过滤因子筛选后的币种 {len(kDict)}")
+        # 用后置过滤因子筛选币种的每一根k线，剔除不满足过滤条件的k线
+        kDf = setAfterFilter(kDict, _filters=FILTER_FACTORS)
+        y = set(kDf["symbol"].drop_duplicates().tolist())
+        logger.info(f"后置过滤因子筛选后的币种 {kDf['symbol'].drop_duplicates().count()} "
+                    f"总共k线 {kDf.shape[0]}")
+        logger.debug(f"前置后置结果差异：{set(x) - set(y)}")
         if len(kDict) == 0:
             sendAndPrintInfo(f"{STRATEGY_NAME} 本周期无合格币种，等待下一周期\n\n\n")
             continue
