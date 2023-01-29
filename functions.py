@@ -17,7 +17,7 @@ from settings import *
 
 
 # pd.set_option('expand_frame_repr', False)  # 当列太多时不换行
-# pd.set_option('display.max_rows', 5000)  # 最多显示数据的行数
+pd.set_option('display.max_rows', 100)  # 最多显示数据的行数
 pd.set_option("display.unicode.ambiguous_as_wide", True)
 pd.set_option("display.unicode.east_asian_width", True)
 logger = logging.getLogger("app.func")
@@ -446,13 +446,30 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
     return df
 
 
-def setFilter(kDict, _filters):
+def setBeforeFilter(kDict, _filters):
+    for symbol, df in kDict.copy().items():
+        r = True
+        for fName, fParas in _filters.items():
+            _cls = __import__("filters")
+            _, rNow = getattr(_cls, fName)(df, fParas)
+            if rNow == False:
+                r = False
+                logger.debug(f"{symbol} 不满足前置过滤 {fName} 被剔除")
+                break
+
+        if r == False:
+            del kDict[symbol]
+
+    return kDict
+
+
+def setAfterFilter(kDict, _filters):
     kDf = pd.DataFrame()
     for symbol, df in kDict.copy().items():
         _dfList = []
         for fName, fParas in _filters.items():
             _cls = __import__("filters")
-            _df = getattr(_cls, fName)(df, fParas)
+            _df, _ = getattr(_cls, fName)(df, fParas)
             # 将时间作为索引，后面需要根据时间来取交集
             _df = _df.reset_index().set_index("candle_begin_time", drop=True)
             _dfList.append(_df)
