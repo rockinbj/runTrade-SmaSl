@@ -562,7 +562,7 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
         exchangeId=exchange.id,
         symbols=symbols,
         level=closeLevel,
-        amount=max(closePeriods)+100,  # 要根据最大均线周期定数量，如果用EMA需要大量k线
+        amount=NEW_KLINE_NUM,  # 要根据最大均线周期定数量，如果用EMA需要大量k线
     )
     # 检查每个币种是否满足closeFactor的止损条件
     for symbol, df in kDict.items():
@@ -574,20 +574,22 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
             names.append(name)
             df[name] = getattr(signals, closeFactor)(df, v)
 
-        if closeMethod == "less":
+        if closeMethod == "CloseLtPeriod1":
             # 要求CLOSE_METHOD=[]列表元素数量为1
             if df.iloc[-1]["close"] < df.iloc[-1][names[0]]:
-                logger.debug(
+                logger.info(
                     f"{symbol} 发生止损 {closeFactor} {closeLevel} {closeMethod}: "
                     f'close {df.iloc[-1]["close"]} < {names[0]} {df.iloc[-1][names[0]]}'
                     )
                 _stop = True
-        elif closeMethod == "sma1LtSma2":
+
+        elif closeMethod == "Period1LtPeriod2":
             # 要求CLOSE_METHOD=[]列表元素数量为2
             if df.iloc[-1][names[0]] < df.iloc[-1][names[1]]:
-                logger.debug(f"{symbol} 发生止损 {closeFactor} {closeLevel} {closeMethod}: "
+                logger.info(f"{symbol} 发生止损 {closeFactor} {closeLevel} {closeMethod}: "
                              f"{names[0]} {df.iloc[-1][names[0]]} < {names[1]} {df.iloc[-1][names[1]]}")
                 _stop = True
+
         elif closeMethod == "xxx":
             pass
 

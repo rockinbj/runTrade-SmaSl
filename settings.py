@@ -27,12 +27,14 @@ OFFSET_LIST = [0,8,16]
 
 # 平仓参数，例如4h级别close小于MA30
 CLOSE_LEVEL = "4h"
-CLOSE_FACTOR = "s_sma"
-CLOSE_PERIODS = [20, 60]  # 必须是list, method=="less"放一个元素, method="sma1LtSma2"放两个
-# CLOSE_METHOD = "less"
-CLOSE_METHOD = "sma1LtSma2"
+CLOSE_FACTOR = "s_ema"
+CLOSE_PERIODS = [20, 60]  # 必须是list, method=="CloseLtPeriod1"放一个元素, method="sma1LtSma2"放两个
+# CLOSE_METHOD = "CloseLtPeriod1"
+CLOSE_METHOD = "Period1LtPeriod2"
 
 # 过滤因子，涨幅下限，小于此则排除
+# 注意过滤因子要与止损因子一致，不然会出现 被止损又被买回来的情况
+# 例如止损因子是MA20<MA60，那么过滤因子也要包含MA20<MA60
 FILTER_FACTORS = {
     "f_bias": {
         "level": OPEN_LEVEL,
