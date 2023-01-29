@@ -577,17 +577,24 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
         if closeMethod == "less":
             # 要求CLOSE_METHOD=[]列表元素数量为1
             if df.iloc[-1]["close"] < df.iloc[-1][names[0]]:
+                logger.debug(
+                    f"{symbol} 发生止损 {closeFactor} {closeLevel} {closeMethod}: "
+                    f'close {df.iloc[-1]["close"]} < {names[0]} {df.iloc[-1][names[0]]}'
+                    )
                 _stop = True
         elif closeMethod == "sma1LtSma2":
             # 要求CLOSE_METHOD=[]列表元素数量为2
             if df.iloc[-1][names[0]] < df.iloc[-1][names[1]]:
+                logger.debug(f"{symbol} 发生止损 {closeFactor} {closeLevel} {closeMethod}: "
+                             f"{names[0]} {df.iloc[-1][names[0]]} < {names[1]} {df.iloc[-1][names[1]]}")
                 _stop = True
         elif closeMethod == "xxx":
             pass
 
         if _stop is True:
-            closePositionForce(exchange, markets, posNow, symbol)
-            sendAndPrintInfo(f"{STRATEGY_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
+            if SKIP_TRADE is False:
+                closePositionForce(exchange, markets, posNow, symbol)
+                sendAndPrintInfo(f"{STRATEGY_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
 
 
 @retry(

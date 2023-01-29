@@ -58,7 +58,7 @@ def main():
         )
 
         # 检查止损
-        if not posNow.empty and SKIP_TRADE is False:
+        if not posNow.empty:
             checkStoploss(
                 exchange=ex,
                 markets=mkts,
