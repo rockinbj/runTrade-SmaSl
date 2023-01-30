@@ -446,8 +446,14 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
     return df
 
 
-def setBeforeFilter(kDict, _filters):
+def setBeforeFilter(kDict, _filters, posNow):
+    posNowList = posNow.index.tolist()
+
     for symbol, df in kDict.copy().items():
+        if symbol in posNowList:
+            logger.debug(f"{symbol} 已持仓，不进行前置过滤")
+            continue
+
         r = True
         for fName, fParas in _filters.items():
             _cls = __import__("filters")
