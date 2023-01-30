@@ -60,7 +60,7 @@ def main():
 
         # 检查止损
         if not posNow.empty and SKIP_TRADE is False:
-            checkStoploss(
+             posNow = checkStoploss(
                 exchange=ex,
                 markets=mkts,
                 posNow=posNow,
@@ -90,10 +90,10 @@ def main():
             level=OPEN_LEVEL,
             amount=NEW_KLINE_NUM,
         )
-        logger.info(f"共获取合格的k线币种 {len(kDict)} 用时 {round(time.time()-startTime, 2)}")
+        logger.info(f"共获取合格的k线币种 {len(kDict)} 用时 {round(time.time()-startTime, 2)}s")
 
         # 前置过滤，剔除最后一根k线不满足过滤条件的币种
-        kDict = setBeforeFilter(kDict, _filters=FILTER_FACTORS)
+        kDict = setBeforeFilter(kDict, _filters=FILTER_FACTORS, posNow=posNow)
         x = set(kDict.keys())
         logger.info(f"前置过滤因子筛选后的币种 {len(kDict)} 总共k线 {sum(len(s) for s in kDict.values())}")
 

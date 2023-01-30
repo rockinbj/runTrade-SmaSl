@@ -449,8 +449,14 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
     return df
 
 
-def setBeforeFilter(kDict, _filters):
+def setBeforeFilter(kDict, _filters, posNow):
+    posNowList = posNow.index.tolist()
+
     for symbol, df in kDict.copy().items():
+        if symbol in posNowList:
+            logger.debug(f"{symbol} 已持仓，不进行前置过滤")
+            continue
+
         r = True
         for fName, fParas in _filters.items():
             _cls = __import__("filters")
@@ -591,6 +597,9 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
         if _stop is True:
             closePositionForce(exchange, markets, posNow, symbol)
             sendAndPrintInfo(f"{STRATEGY_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
+            pos = getOpenPosition(exchange)
+
+    return pos
 
 
 @retry(
