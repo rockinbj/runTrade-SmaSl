@@ -77,9 +77,6 @@ def main():
             n=TOP,
         )
         symbols = sorted(list((set(symbols) | set(SYMBOLS_WHITE)) - set(SYMBOLS_BLACK)))
-        if OVERLAPS is False and not posNow.empty:
-            symbols = list(set(symbols) - set(posNow.index.tolist()))
-
         logger.info(f"Top{TOP}筛选和合并黑白名单之后, 币池列表共 {len(symbols)}")
         # logger.debug(f"币池列表:\n{_n.join(symbols)}")
 
@@ -118,7 +115,6 @@ def main():
         kDf = getChosen(
             klinesDf=kDf,
             selectNum=SELECTION_NUM,
-            filters=FILTER_FACTORS,
         )
         logger.debug(f"选币结果:\n{kDf}")
 

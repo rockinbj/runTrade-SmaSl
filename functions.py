@@ -512,7 +512,7 @@ def setFactor(klinesDict: dict, openFactor, openPeriod):
     return klinesDict
 
 
-def getChosen(klinesDf: pd.DataFrame, selectNum, filters=None):
+def getChosen(klinesDf: pd.DataFrame, selectNum):
     # 选币因子排名
     if not klinesDf.empty:
         klinesDf.sort_values("candle_begin_time", inplace=True)
