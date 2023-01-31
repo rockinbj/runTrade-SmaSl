@@ -16,6 +16,7 @@ TOP = 200
 # 选币个数
 SELECTION_NUM = 1
 # 是允许否重复加仓，即多个offset选中同一个币
+# unfinished
 OVERLAPS = False
 
 # 开仓参数，4h*3，例如12小时bias因子涨幅排行
