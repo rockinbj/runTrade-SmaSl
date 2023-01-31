@@ -1,7 +1,6 @@
 import datetime as dt
 import json
 from functools import partial
-from functools import reduce
 # from multiprocessing import Pool, cpu_count
 from multiprocessing.pool import ThreadPool as TPool
 
@@ -14,7 +13,6 @@ import signals
 from exchangeConfig import *
 from logger import *
 from settings import *
-
 
 # pd.set_option('expand_frame_repr', False)  # 当列太多时不换行
 pd.set_option('display.max_rows', 100)  # 最多显示数据的行数
@@ -447,10 +445,11 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
 
 
 def setBeforeFilter(kDict, _filters, posNow):
-    posNowList = posNow.index.tolist()
+    # 如果有持仓，获取持仓币种
+    posNowList = posNow.index.tolist() if posNow else None
 
     for symbol, df in kDict.copy().items():
-        if symbol in posNowList:
+        if posNowList and symbol in posNowList:
             logger.debug(f"{symbol} 已持仓，不进行前置过滤")
             continue
 
