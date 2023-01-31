@@ -704,8 +704,9 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
             logger.debug(f"{symbol}订单参数:{para}")
             orderParams.append(para)
             # 设置杠杆和全仓模式
-            retryIt(exchange.fapiPrivatePostLeverage, paras={"symbol": symbolId, "leverage": leverage})
-            retryIt(exchange.fapiPrivatePostMargintype, paras={"symbol": symbolId, "marginType": marginType})
+            if SKIP_TRADE is False:
+                retryIt(exchange.fapiPrivatePostLeverage, paras={"symbol": symbolId, "leverage": leverage})
+                retryIt(exchange.fapiPrivatePostMargintype, paras={"symbol": symbolId, "marginType": marginType})
         except Exception as e:
             sendAndPrintError(f"{STRATEGY_NAME} {symbol}构造订单信息出错,跳过该币种:{e}")
             logger.exception(e)
@@ -716,6 +717,7 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
     for i in range(0, len(orderParams), 5):
         _orderP = orderParams[i: i + 5]
         logger.debug(f"本次批量下单参数:\n{_n.join(map(str, _orderP))}")
+        if SKIP_TRADE: continue
         r = retryIt(
             exchange.fapiPrivatePostBatchorders,
             paras={"batchOrders": json.dumps(_orderP)},
@@ -757,5 +759,7 @@ def closePositionForce(exchange, markets, openPositions, symbol=None):
             "quantity": pos["contracts"],
             "reduceOnly": True,
         }
+        logger.debug(f"{symbol} 平仓单参数: {para}")
 
-        retryIt(exchange.fapiPrivatePostOrder, paras=para, critical=True)
+        if SKIP_TRADE is False:
+            retryIt(exchange.fapiPrivatePostOrder, paras=para, critical=True)
