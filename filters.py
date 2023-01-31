@@ -126,3 +126,25 @@ def f_ema_trend(df, params):
         df = df.loc[(df[p1] < df[p2]) & (df[p2] < df[p3])]
 
     return df, rNow
+
+
+def f_mtm(df, params):
+    # period: mtm length
+    # base: base value for comparing
+    # gt==True: value > base
+    # gt==False: value < base
+    period, base, gt = params["period"], params["base"], params["gt"]
+    df.sort_values("candle_begin_time", inplace=True)
+    df = df.copy()
+    df["mtm"] = df["close"].pct_change(periods=period)
+
+    if gt is True:
+        # 最后一根k线是否满足过滤
+        rNow = df.iloc[-1]["mtm"] > base
+        df = df.loc[df["mtm"] > base]
+
+    else:
+        rNow = df.iloc[-1]["mtm"] < base
+        df = df.loc[df["mtm"] < base]
+
+    return df, rNow

@@ -1,11 +1,9 @@
 # this is code for offset branch
-import time
-from multiprocessing import current_process
 from multiprocessing import Pool as PPool
+from multiprocessing import current_process
 
 from functions import *
 from settings import *
-
 
 pd.set_option("display.unicode.ambiguous_as_wide", True)
 pd.set_option("display.unicode.east_asian_width", True)
@@ -41,9 +39,9 @@ def main():
         logger.info(f"获取币种信息完毕, 共 {len(mkts)}")
         # 获取当前余额
         balance = getBalance(exchange=ex, asset="usdt")
-        logger.info(f"获取余额信息完毕, 当前资金 {round(balance,2)}, "
-                    f"可开资金 {round(balance*MAX_BALANCE,2)}, "
-                    f"单币杠杆率 {LEVERAGE}, 实际杠杆率 {round(MAX_BALANCE*LEVERAGE,2)}")
+        logger.info(f"获取余额信息完毕, 当前资金 {round(balance, 2)}, "
+                    f"可开资金 {round(balance * MAX_BALANCE, 2)}, "
+                    f"单币杠杆率 {LEVERAGE}, 实际杠杆率 {round(MAX_BALANCE * LEVERAGE, 2)}")
         balance *= MAX_BALANCE
 
         # 获取当前持仓
@@ -60,7 +58,7 @@ def main():
 
         # 检查止损
         if not posNow.empty and SKIP_TRADE is False:
-             posNow = checkStoploss(
+            posNow = checkStoploss(
                 exchange=ex,
                 markets=mkts,
                 posNow=posNow,
@@ -79,6 +77,9 @@ def main():
             n=TOP,
         )
         symbols = sorted(list((set(symbols) | set(SYMBOLS_WHITE)) - set(SYMBOLS_BLACK)))
+        if OVERLAPS is False and not posNow.empty:
+            symbols = list(set(symbols) - set(posNow.index.tolist()))
+
         logger.info(f"Top{TOP}筛选和合并黑白名单之后, 币池列表共 {len(symbols)}")
         # logger.debug(f"币池列表:\n{_n.join(symbols)}")
 
@@ -90,11 +91,10 @@ def main():
             level=OPEN_LEVEL,
             amount=NEW_KLINE_NUM,
         )
-        logger.info(f"共获取合格的k线币种 {len(kDict)} 用时 {round(time.time()-startTime, 2)}s")
+        logger.info(f"共获取合格的k线币种 {len(kDict)} 用时 {round(time.time() - startTime, 2)}s")
 
         # 前置过滤，剔除最后一根k线不满足过滤条件的币种
         kDict = setBeforeFilter(kDict, _filters=FILTER_FACTORS, posNow=posNow)
-        x = set(kDict.keys())
         logger.info(f"前置过滤因子筛选后的币种 {len(kDict)} 总共k线 {sum(len(s) for s in kDict.values())}")
 
         # 先计算开仓因子，再过滤，再选币，
@@ -108,10 +108,8 @@ def main():
 
         # 用后置过滤因子筛选币种的每一根k线，剔除不满足过滤条件的k线
         kDf = setAfterFilter(kDict, _filters=FILTER_FACTORS)
-        y = set(kDf["symbol"].drop_duplicates().tolist())
         logger.info(f"后置过滤因子筛选后的币种 {kDf['symbol'].drop_duplicates().count()} "
                     f"总共k线 {kDf.shape[0]}")
-        logger.debug(f"前置后置结果差异：{set(x) - set(y)}")
         if len(kDict) == 0:
             sendAndPrintInfo(f"{STRATEGY_NAME} 本周期无合格币种，等待下一周期\n\n\n")
             continue
@@ -180,4 +178,3 @@ if __name__ == "__main__":
             sendAndPrintError(f"{STRATEGY_NAME} 主程序异常, 自动重启, 请检查{e}")
             logger.exception(e)
             continue
-

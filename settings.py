@@ -15,27 +15,28 @@ TOP = 200
 
 # 选币个数
 SELECTION_NUM = 1
+# 是允许否重复加仓，即多个offset选中同一个币
+OVERLAPS = False
 
 # 开仓参数，4h*3，例如12小时bias因子涨幅排行
-OPEN_FACTOR = "s_bias"
+OPEN_FACTOR = "s_mtm"
 OPEN_LEVEL = "1h"
 OPEN_PERIOD = 6
 
 # 持仓时间，offset
-HOLD_TIME = "24h"
-OFFSET_LIST = [0,8,16]
+HOLD_TIME = "48h"
+OFFSET_LIST = [0,12,24,36]
 
 # 平仓参数，例如4h级别close小于MA30
 CLOSE_LEVEL = "4h"
 CLOSE_FACTOR = "s_sma"
-CLOSE_PERIODS = [20]  # 必须是list, method=="less"放一个元素, method="sma1LtSma2"放两个
+CLOSE_PERIODS = [30]  # 必须是list, method=="less"放一个元素, method="sma1LtSma2"放两个
 CLOSE_METHOD = "less"
 # CLOSE_METHOD = "sma1LtSma2"
 
 # 过滤因子，涨幅下限，小于此则排除
 FILTER_FACTORS = {
-    "f_bias": {
-        "level": OPEN_LEVEL,
+    "f_mtm": {
         "period": OPEN_PERIOD,
         "base": 0 / 100,
         "gt": True,

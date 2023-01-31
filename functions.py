@@ -184,7 +184,6 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[0]}: {OPEN_LEVEL} {OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[1]}: {CLOSE_LEVEL} {CLOSE_PERIODS[0]}\n"
         msg += f"#### 平仓因子 : {CLOSE_LEVEL} close<{CLOSE_FACTOR}{CLOSE_PERIODS[0]}\n"
-        msg += f"#### 平仓因子 : {CLOSE_LEVEL} close<{CLOSE_FACTOR}{CLOSE_PERIODS[0]}\n"
         msg += f"#### 账户余额 : {round(bal, 2)}U\n"
         msg += f"#### 页面杠杆 : {LEVERAGE}\n"
         msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
@@ -624,6 +623,7 @@ def getPositions(exchange):
 
 def getOpenPosition(exchange):
     pos = getPositions(exchange)
+    op = pd.DataFrame()
     op = pos.loc[pos["contracts"] != 0]
     op = op.astype(
         {
