@@ -177,6 +177,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
 
         msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
         msg += f"#### 选币数量 : {SELECTION_NUM}\n"
+        msg += f"#### 选币分组 : {OFFSET_LIST}\n"
         msg += f"#### 开仓因子 : {OPEN_FACTOR}: {OPEN_LEVEL}*{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[0]}: {OPEN_LEVEL} {OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[1]}: {CLOSE_LEVEL}\n"
