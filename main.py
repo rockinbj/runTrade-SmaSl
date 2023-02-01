@@ -153,7 +153,7 @@ def main():
         logger.info(f"当前持仓与目标持仓合并后的交易信号:\n{sig}")
 
         # 根据交易信号执行订单
-        if not sig.empty and SKIP_TRADE is False:
+        if not sig.empty:
             prices = getPrices(exchange=ex)
             ordersResp = placeOrder(
                 exchange=ex,
