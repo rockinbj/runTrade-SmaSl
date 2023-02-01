@@ -114,6 +114,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
 
     nowMinute = dt.datetime.now().minute
     nowSecond = dt.datetime.now().second
+    if IS_TEST: nowMinute = interval
 
     if (nowMinute % interval == 0) and (nowSecond == 59):
         logger.debug("开始发送报告")
