@@ -446,7 +446,7 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
 
 def setBeforeFilter(kDict, _filters, posNow):
     # 如果有持仓，获取持仓币种
-    posNowList = posNow.index.tolist() if posNow else None
+    posNowList = posNow.index.tolist() if not posNow.empty else None
 
     for symbol, df in kDict.copy().items():
         if posNowList and symbol in posNowList:
@@ -582,27 +582,20 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
         if closeMethod == "CloseLtPeriod1":
             # 要求CLOSE_METHOD=[]列表元素数量为1
             if df.iloc[-1]["close"] < df.iloc[-1][names[0]]:
-                logger.info(
-                    f"{symbol} 发生止损 {closeFactor} {closeLevel} {closeMethod}: "
-                    f'close {df.iloc[-1]["close"]} < {names[0]} {df.iloc[-1][names[0]]}'
-                    )
                 _stop = True
-
         elif closeMethod == "Period1LtPeriod2":
             # 要求CLOSE_METHOD=[]列表元素数量为2
             if df.iloc[-1][names[0]] < df.iloc[-1][names[1]]:
-                logger.info(f"{symbol} 发生止损 {closeFactor} {closeLevel} {closeMethod}: "
-                             f"{names[0]} {df.iloc[-1][names[0]]} < {names[1]} {df.iloc[-1][names[1]]}")
                 _stop = True
-
         elif closeMethod == "xxx":
             pass
 
         if _stop is True:
-            if SKIP_TRADE is False:
-                closePositionForce(exchange, markets, posNow, symbol)
-                sendAndPrintInfo(f"{STRATEGY_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
+            closePositionForce(exchange, markets, posNow, symbol)
+            sendAndPrintInfo(f"{STRATEGY_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
+            pos = getOpenPosition(exchange)
 
+    return pos
 
 @retry(
     stop=stop_after_attempt(3),
