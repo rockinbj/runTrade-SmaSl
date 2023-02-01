@@ -742,7 +742,7 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
     # 'updateTime': '1674768603876'}, ...]
     if orderResp:
         for k, v in enumerate(orderResp):
-            orderResp[k] = [v["side"], v["symbol"], v["cumQuote"]]
+            orderResp[k] = [v["side"], v["symbol"], f'{round(float(v["price"]) * float(v["origQty"]), 2)}U']
         orderResp = "\n".join([str(i) for i in orderResp])
     return orderResp
 
