@@ -111,7 +111,7 @@ def sendAndRaise(msg):
     raise RuntimeError(msg)
 
 
-def sendReport(exchangeId, interval=REPORT_INTERVAL):
+def sendReport_bk(exchangeId, interval=REPORT_INTERVAL):
     exchange = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
 
     nowMinute = dt.datetime.now().minute
@@ -184,6 +184,85 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[0]}: {OPEN_LEVEL} {OPEN_PERIOD}\n"
         msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[1]}: {CLOSE_LEVEL} {CLOSE_PERIODS[0]}\n"
         msg += f"#### 平仓因子 : {CLOSE_LEVEL} close<{CLOSE_FACTOR}{CLOSE_PERIODS[0]}\n"
+        msg += f"#### 账户余额 : {round(bal, 2)}U\n"
+        msg += f"#### 页面杠杆 : {LEVERAGE}\n"
+        msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
+        msg += f"#### 实际杠杆 : {round(LEVERAGE * MAX_BALANCE, 2)}\n"
+
+        r = sendMixin(msg, _type="PLAIN_POST")
+
+
+def sendReport(exchangeId, interval=REPORT_INTERVAL):
+    exchange = getattr(ccxt, exchangeId)(EXCHANGE_CONFIG)
+
+    nowMinute = dt.datetime.now().minute
+    nowSecond = dt.datetime.now().second
+
+    if (nowMinute % interval == 0) and (nowSecond == 59):
+        logger.debug("开始发送报告")
+
+        pos = getOpenPosition(exchange)
+        bTot, bBal, bPos = getBalances(exchange)
+        bal = round(float(bTot.iloc[0]["availableBalance"]), 2)
+        wal = round(float(bTot.iloc[0]["totalMarginBalance"]), 2)
+
+        msg = f"### {STRATEGY_NAME} - 策略报告\n\n"
+
+        if pos.shape[0] > 0:
+            pos = pos[
+                [
+                    "notional",
+                    "percentage",
+                    "unrealizedPnl",
+                    "entryPrice",
+                    "markPrice",
+                    "liquidationPrice",
+                    "datetime",
+                    "leverage",
+                ]
+            ]
+
+            pos.rename(
+                columns={
+                    "notional": "持仓价值(U)",
+                    "percentage": "盈亏比例(%)",
+                    "unrealizedPnl": "未实现盈亏(U)",
+                    "entryPrice": "开仓价格(U)",
+                    "markPrice": "标记价格(U)",
+                    "liquidationPrice": "爆仓价格(U)",
+                    "datetime": "开仓时间",
+                    "leverage": "杠杆倍数",
+                },
+                inplace=True,
+            )
+
+            pos.sort_values(by="盈亏比例(%)", ascending=False, inplace=True)
+            d = pos.to_dict(orient="index")
+
+            msg += f"#### 账户权益 : {wal}U\n"
+            msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
+
+            for k, v in d.items():
+                msg += f"""
+##### {k}
+ - 持仓价值(U) : {v["持仓价值(U)"]}
+ - 盈亏比例(%) : {v["盈亏比例(%)"]}
+ - 未实现盈亏(U) : {v["未实现盈亏(U)"]}
+ - 开仓价格(U) : {v["开仓价格(U)"]}
+ - 标记价格(U) : {v["标记价格(U)"]}
+ - 爆仓价格(U) : {v["爆仓价格(U)"]}
+ - 开仓时间 : {v["开仓时间"]}
+ - 杠杆倍数 : {v["杠杆倍数"]}
+"""
+        else:
+            msg += "#### 当前空仓\n"
+
+        msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
+        msg += f"#### 选币数量 : {SELECTION_NUM}\n"
+        msg += f"#### 开仓因子 : {OPEN_FACTOR}: {OPEN_LEVEL}*{OPEN_PERIOD}\n"
+        msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[0]}: {OPEN_LEVEL} {OPEN_PERIOD}\n"
+        msg += f"#### 过滤因子 : {list(FILTER_FACTORS.keys())[1]}: {CLOSE_LEVEL}\n"
+        msg += f"#### 平仓因子 : {CLOSE_FACTOR}: {CLOSE_LEVEL} {CLOSE_PERIODS[0]}<{CLOSE_PERIODS[1]}\n"
         msg += f"#### 账户余额 : {round(bal, 2)}U\n"
         msg += f"#### 页面杠杆 : {LEVERAGE}\n"
         msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
