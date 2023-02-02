@@ -165,9 +165,9 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             for k, v in d.items():
                 msg += f"""
 ##### {k}
- - 持仓价值(U) : {v["持仓价值(U)"]}
  - 盈亏比例(%) : {v["盈亏比例(%)"]}
  - 未实现盈亏(U) : {v["未实现盈亏(U)"]}
+ - 持仓价值(U) : {v["持仓价值(U)"]}
  - 开仓价格(U) : {v["开仓价格(U)"]}
  - 标记价格(U) : {v["标记价格(U)"]}
  - 爆仓价格(U) : {v["爆仓价格(U)"]}
