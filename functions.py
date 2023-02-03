@@ -320,8 +320,8 @@ def getBalances(exchange):
         sendAndRaise(f"{STRATEGY_NAME}: getBalances()错误，程序退出。{e}")
 
 
-def getBalance(exchange, symbol="usdt"):
-    symbol = symbol.upper()
+def getBalance(exchange, asset="usdt"):
+    symbol = asset.upper()
     b = exchange.fetchBalance()[symbol]
     # b = {'free': 18.89125761, 'used': 27.08454256, 'total': 45.97736273}
     return b
@@ -1118,9 +1118,10 @@ def closePosition(
     return closed
 
 
-def closePositionForce(exchange, markets, openPostions):
-
-    for symbol, pos in openPostions.iterrows():
+def closePositionForce(exchange, markets, openPostions, symbol=None):
+    # 如果没有symbol参数, 清空所有持仓, 如果有symbol只平仓指定币种
+    for s, pos in openPostions.iterrows():
+        if symbol is not None and s != symbol: continue
         symbolId = markets[symbol]["id"]
         para = {
             "symbol": symbolId,
