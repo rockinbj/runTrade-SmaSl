@@ -29,7 +29,7 @@ if len(sys.argv) == 2:
         print(f"当前余额:\n{bal}")
 
     elif "--close=" in sys.argv[1]:
-        symbol = sys.argv[2].replace("--close=", "")
+        symbol = sys.argv[1].replace("--close=", "")
         print(f"\n\n\n正在执行{symbol}的平仓操作.....")
         closePositionForce(ex, mkts, pos, symbol)
 
