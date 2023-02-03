@@ -16,25 +16,26 @@ print(f"当前持仓情况:\n{pos}\n")
 bal = getBalance(ex, asset="USDT")
 print(f"当前余额:\n{bal}\n")
 
-if "--close" == sys.argv[1]:
-    print(f"\n\n\n正在执行清仓操作......")
-    closePositionForce(ex, mkts, pos)
+if len(sys.argv) == 2:
+    if "--close" == sys.argv[1]:
+        print(f"\n\n\n正在执行清仓操作......")
+        closePositionForce(ex, mkts, pos)
 
-    pos = getOpenPosition(ex)
-    pos = pos[["contracts", "notional", "unrealizedPnl", "percentage", "leverage", "entryPrice", "markPrice",
-               "liquidationPrice"]]
-    print(f"当前持仓情况:\n{pos}")
-    bal = getBalance(ex)
-    print(f"当前余额:\n{bal}")
+        pos = getOpenPosition(ex)
+        pos = pos[["contracts", "notional", "unrealizedPnl", "percentage", "leverage", "entryPrice", "markPrice",
+                   "liquidationPrice"]]
+        print(f"当前持仓情况:\n{pos}")
+        bal = getBalance(ex)
+        print(f"当前余额:\n{bal}")
 
-elif "--close=" in sys.argv[1]:
-    symbol = sys.argv[2].replace("--close=", "")
-    print(f"\n\n\n正在执行{symbol}的平仓操作.....")
-    closePositionForce(ex, mkts, pos, symbol)
+    elif "--close=" in sys.argv[1]:
+        symbol = sys.argv[2].replace("--close=", "")
+        print(f"\n\n\n正在执行{symbol}的平仓操作.....")
+        closePositionForce(ex, mkts, pos, symbol)
 
-    pos = getOpenPosition(ex)
-    pos = pos[["contracts", "notional", "unrealizedPnl", "percentage", "leverage", "entryPrice", "markPrice",
-               "liquidationPrice"]]
-    print(f"当前持仓情况:\n{pos}")
-    bal = getBalance(ex)
-    print(f"当前余额:\n{bal}")
+        pos = getOpenPosition(ex)
+        pos = pos[["contracts", "notional", "unrealizedPnl", "percentage", "leverage", "entryPrice", "markPrice",
+                   "liquidationPrice"]]
+        print(f"当前持仓情况:\n{pos}")
+        bal = getBalance(ex)
+        print(f"当前余额:\n{bal}")
