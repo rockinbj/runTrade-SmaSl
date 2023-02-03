@@ -86,6 +86,7 @@ def main():
                 logger.info(f"本周期无开仓币种")
                 
         logger.debug(f"本轮用时:{round(time.time()-startTime, 2)}")
+        if IS_TEST: exit()
         # 等待下一轮
         sleepToClose(level=OPEN_LEVEL, aheadSeconds=AHEAD_SEC, test=IS_TEST, offsetSec=OFFSET_SEC)
 
