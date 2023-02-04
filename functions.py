@@ -156,10 +156,11 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
 
         msg += f"#### 轮动数量 : {TOP+len(SYMBOLS_WHITE)-len(SYMBOLS_BLACK)}\n"
         msg += f"#### 选币数量 : {SELECTION_NUM}\n"
-        msg += f"#### 开仓因子 : {OPEN_LEVEL}*{OPEN_PERIOD}\n"
+        msg += f"#### 持仓时间 : {HOLD_TIME}\n"
+        msg += f"#### 开仓因子 : {OPEN_FACTOR} {OPEN_LEVEL}*{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子1 : {FILTER_FACTOR}{CLOSE_PERIOD}\n"
         msg += f"#### 过滤因子2 : Increase>{MIN_CHANGE*100}%\n"
-        msg += f"#### 平仓因子 : {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
+        msg += f"#### 平仓因子 : {CLOSE_FACTOR} {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
         msg += f"#### 固定止损 : {SL_PERCENT if ENABLE_SL else 'False'}\n"
         msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
         msg += f"#### 可用余额 : {bal}U\n"
