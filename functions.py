@@ -733,7 +733,7 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
     # 整理订单回执，去掉无用信息
     if orderResp:
         for k, v in enumerate(orderResp):
-            orderResp[k] = [v["side"], v["symbol"]]
+            orderResp[k] = [v["side"], v["symbol"], f'{round(float(v["price"]) * float(v["origQty"]), 2)}U']
         orderResp = "\n".join([str(i) for i in orderResp])
     return orderResp
 
