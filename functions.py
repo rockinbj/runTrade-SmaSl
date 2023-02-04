@@ -164,7 +164,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 固定止损 : {SL_PERCENT if ENABLE_SL else 'False'}\n"
         msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
         msg += f"#### 可用余额 : {bal}U\n"
-        msg += f"#### 页面杠杆 : {LEVERAGE}U\n"
+        msg += f"#### 页面杠杆 : {LEVERAGE}\n"
         msg += f"#### 资金上限 : {MAX_BALANCE*100}%\n"
         msg += f"#### 实际杠杆 : {round(LEVERAGE * MAX_BALANCE, 2)}\n"
 
