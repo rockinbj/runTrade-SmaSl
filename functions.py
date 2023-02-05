@@ -750,5 +750,7 @@ def closePositionForce(exchange, markets, openPositions, symbol=None):
             "quantity": pos["contracts"],
             "reduceOnly": True,
         }
+        logger.debug(f"{s} 平仓单参数: {para}")
 
-        if SKIP_TRADE is False: retryIt(exchange.fapiPrivatePostOrder, paras=para, critical=True)
+        if SKIP_TRADE is False:
+            retryIt(exchange.fapiPrivatePostOrder, paras=para, critical=True)
