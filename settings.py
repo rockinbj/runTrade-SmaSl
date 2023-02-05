@@ -58,6 +58,8 @@ MARGIN_TYPE = "CROSSED"
 # MARGIN_TYPE = "ISOLATED"
 # 限价单安全滑点
 SLIPPAGE = 1.5 / 100
+# 最小交易金额，更小忽略
+MIN_PAYMENT = 7
 
 # 获取最新k线的数量
 # 有使用EMA的计算需要大量k线让长均线(120)收敛到接近值
