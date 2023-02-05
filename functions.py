@@ -1121,7 +1121,7 @@ def closePositionForce(exchange, markets, openPostions, symbol=None):
     # 如果没有symbol参数, 清空所有持仓, 如果有symbol只平仓指定币种
     for s, pos in openPostions.iterrows():
         if symbol is not None and s != symbol: continue
-        symbolId = markets[symbol]["id"]
+        symbolId = markets[s]["id"]
         para = {
             "symbol": symbolId,
             "side": "SELL",
@@ -1132,7 +1132,7 @@ def closePositionForce(exchange, markets, openPostions, symbol=None):
         try:
             exchange.fapiPrivatePostOrder(para)
         except Exception as e:
-            logger.error(f"closePositionForce({symbol})强制平仓出错: {e}")
+            logger.error(f"closePositionForce({s})强制平仓出错: {e}")
             logger.exception(e)
 
 
