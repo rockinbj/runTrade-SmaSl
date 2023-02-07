@@ -20,7 +20,7 @@ SELECTION_NUM = 1
 OVERLAPS = False
 
 # 开仓参数，4h*3，例如12小时bias因子涨幅排行
-OPEN_FACTOR = "s_mtm"
+OPEN_FACTOR = "s_bias"
 OPEN_LEVEL = "1h"
 OPEN_PERIOD = 6
 
@@ -37,7 +37,8 @@ CLOSE_METHOD = "less"
 
 # 过滤因子，涨幅下限，小于此则排除
 FILTER_FACTORS = {
-    "f_mtm": {
+    "f_bias": {
+        "level": OPEN_LEVEL,
         "period": OPEN_PERIOD,
         "base": 0 / 100,
         "gt": True,
