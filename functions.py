@@ -677,7 +677,7 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
             symbolId = markets[symbol]["id"]
             amount = row["amount"]
             price = prices[symbolId]
-            if amount > 0 and price * amount < MIN_PAYMENT:
+            if abs(price * amount) < MIN_PAYMENT:
                 logger.debug(f"{symbol}交易金额小于{MIN_PAYMENT}U,跳过该币种")
                 continue
 
