@@ -11,7 +11,7 @@ mkts = ex.loadMarkets()
 
 pos = getOpenPosition(ex)
 pos = pos[["contracts", "notional", "unrealizedPnl", "percentage", "leverage", "entryPrice", "markPrice",
-           "liquidationPrice", "marginType", "side"]]
+           "liquidationPrice", "marginType", "side", "datetime"]]
 print(f"当前持仓情况:\n{pos}\n")
 bal = getBalance(ex, asset="USDT")
 print(f"当前余额:\n{bal}\n")

@@ -639,7 +639,7 @@ def getOpenPosition(exchange):
             "marginType": str,
             "side": str,
             "percentage": float,
-            "timestamp": float,
+            "timestamp": "datetime64[ms]",
         }
     )
     op = op[["contracts", "notional", "percentage", "unrealizedPnl", "leverage", "entryPrice", "markPrice",
