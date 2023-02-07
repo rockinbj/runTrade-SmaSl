@@ -25,13 +25,13 @@ OPEN_LEVEL = "1h"
 OPEN_PERIOD = 6
 
 # 持仓时间，offset
-HOLD_TIME = "48h"
-OFFSET_LIST = [0,12,24,36]
+HOLD_TIME = "24h"
+OFFSET_LIST = [0,12]
 
 # 平仓参数，例如4h级别close小于MA30
 CLOSE_LEVEL = "4h"
 CLOSE_FACTOR = "s_sma"
-CLOSE_PERIODS = [30]  # 必须是list, method=="less"放一个元素, method="sma1LtSma2"放两个
+CLOSE_PERIODS = [20]  # 必须是list, method=="less"放一个元素, method="sma1LtSma2"放两个
 CLOSE_METHOD = "less"
 # CLOSE_METHOD = "sma1LtSma2"
 
