@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import time
 from functools import partial
 from functools import reduce
 # from multiprocessing import Pool, cpu_count
@@ -729,6 +730,8 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
                 orderResp.append(v)
             else:
                 sendAndPrintError(f"{STRATEGY_NAME} 下单出错: {_orderP[idx]}  {v}")
+
+        time.sleep(SLEEP_SHORT)
 
     # 整理订单回执，去掉无用信息
     # Order Response Format:
