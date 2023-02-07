@@ -1,6 +1,7 @@
 # this is code for offset branch
 from multiprocessing import Pool as PPool
 from multiprocessing import current_process
+from pprint import pprint
 
 from functions import *
 from settings import *
@@ -23,8 +24,12 @@ def reporter(exchangeId, interval):
 
 
 def main():
-    ex = getattr(ccxt, EXCHANGE)(EXCHANGE_CONFIG)
     exId = EXCHANGE
+    ex = getattr(ccxt, exId)(EXCHANGE_CONFIG)
+    if MARKET == "swap":
+        ex.options["defaultType"] = "future"
+    elif MARKET == "spot":
+        ex.options["defaultType"] = "spot"
 
     # 开启一个非阻塞的报告进程
     rptpool = PPool(1)
@@ -38,7 +43,7 @@ def main():
         mkts = ex.loadMarkets()
         logger.info(f"获取币种信息完毕, 共 {len(mkts)}")
         # 获取当前余额
-        balance = getBalance(exchange=ex, asset="usdt")
+        balance = getBalance(exchange=ex, asset=RULE)
         logger.info(f"获取余额信息完毕, 当前资金 {round(balance, 2)}, "
                     f"可开资金 {round(balance * MAX_BALANCE, 2)}, "
                     f"单币杠杆率 {LEVERAGE}, 实际杠杆率 {round(MAX_BALANCE * LEVERAGE, 2)}")
@@ -168,6 +173,7 @@ def main():
 
 if __name__ == "__main__":
     while True:
+        time.sleep(SLEEP_SHORT)
         try:
             main()
         except Exception as e:

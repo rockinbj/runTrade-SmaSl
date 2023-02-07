@@ -1,8 +1,5 @@
 import datetime as dt
-import json
-import time
 from functools import partial
-from functools import reduce
 # from multiprocessing import Pool, cpu_count
 from multiprocessing.pool import ThreadPool as TPool
 
@@ -32,7 +29,7 @@ def retryIt(fun, paras={}, retryTimes=MAX_TRY, retryWaitFor=RETRY_WAIT, critical
         except ccxt.MarginModeAlreadySet:
             pass
         except Exception as e:
-            logger.error(f"{fun.__name__}报错, retryIt()即将在{retryWaitFor}秒后重试{i}次: {e}")
+            logger.error(f"{fun.__name__}报错, retryIt()即将在{retryWaitFor}秒后重试: {e}")
             logger.exception(e)
             time.sleep(retryWaitFor)
             if i == retryTimes - 1:
@@ -122,48 +119,49 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         logger.debug("开始发送报告")
 
         pos = getOpenPosition(exchange)
-        bTot, bBal, bPos = getBalances(exchange)
-        bal = round(float(bTot.iloc[0]["availableBalance"]), 2)
-        wal = round(float(bTot.iloc[0]["totalMarginBalance"]), 2)
+        if MARKET == "swap":
+            bTot, bBal, bPos = getBalances(exchange)
+            bal = round(float(bTot.iloc[0]["availableBalance"]), 2)
+            wal = round(float(bTot.iloc[0]["totalMarginBalance"]), 2)
 
-        msg = f"### {STRATEGY_NAME} - 策略报告\n\n"
+            msg = f"### {STRATEGY_NAME} - 策略报告\n\n"
 
-        if pos.shape[0] > 0:
-            pos = pos[
-                [
-                    "notional",
-                    "percentage",
-                    "unrealizedPnl",
-                    "entryPrice",
-                    "markPrice",
-                    "liquidationPrice",
-                    "datetime",
-                    "leverage",
+            if pos.shape[0] > 0:
+                pos = pos[
+                    [
+                        "notional",
+                        "percentage",
+                        "unrealizedPnl",
+                        "entryPrice",
+                        "markPrice",
+                        "liquidationPrice",
+                        "datetime",
+                        "leverage",
+                    ]
                 ]
-            ]
 
-            pos.rename(
-                columns={
-                    "notional": "持仓价值(U)",
-                    "percentage": "盈亏比例(%)",
-                    "unrealizedPnl": "未实现盈亏(U)",
-                    "entryPrice": "开仓价格(U)",
-                    "markPrice": "标记价格(U)",
-                    "liquidationPrice": "爆仓价格(U)",
-                    "datetime": "开仓时间",
-                    "leverage": "杠杆倍数",
-                },
-                inplace=True,
-            )
+                pos.rename(
+                    columns={
+                        "notional": "持仓价值(U)",
+                        "percentage": "盈亏比例(%)",
+                        "unrealizedPnl": "未实现盈亏(U)",
+                        "entryPrice": "开仓价格(U)",
+                        "markPrice": "标记价格(U)",
+                        "liquidationPrice": "爆仓价格(U)",
+                        "datetime": "开仓时间",
+                        "leverage": "杠杆倍数",
+                    },
+                    inplace=True,
+                )
 
-            pos.sort_values(by="盈亏比例(%)", ascending=False, inplace=True)
-            d = pos.to_dict(orient="index")
+                pos.sort_values(by="盈亏比例(%)", ascending=False, inplace=True)
+                d = pos.to_dict(orient="index")
 
-            msg += f"#### 账户权益 : {wal}U\n"
-            msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
+                msg += f"#### 账户权益 : {wal}U\n"
+                msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
 
-            for k, v in d.items():
-                msg += f"""
+                for k, v in d.items():
+                    msg += f"""
 ##### {k}
  - 持仓价值(U) : {v["持仓价值(U)"]}
  - 盈亏比例(%) : {v["盈亏比例(%)"]}
@@ -174,8 +172,22 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
  - 开仓时间 : {v["开仓时间"]}
  - 杠杆倍数 : {v["杠杆倍数"]}
 """
-        else:
-            msg += "#### 当前空仓\n"
+            else:
+                msg += "#### 当前空仓\n"
+
+        if MARKET == "spot":
+            bal = getBalance(exchange, RULE)
+            costTotal = pos["cost"].sum()
+            d = pos.to_dict(orient="index")
+            msg += f"#### 账户权益 : {costTotal}U\n"
+            msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
+
+            for k, v in d.items():
+                msg += f"""
+##### {k}
+ - 持仓价值(U) : {round(v["cost"], 2)}
+ - 持仓数量 : {round(v["free"], 2)}
+"""
 
         msg += f"#### 轮动数量 : {TOP + len(SYMBOLS_WHITE) - len(SYMBOLS_BLACK)}\n"
         msg += f"#### 选币数量 : {SELECTION_NUM}\n"
@@ -190,7 +202,6 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 页面杠杆 : {LEVERAGE}\n"
         msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
         msg += f"#### 实际杠杆 : {round(LEVERAGE * MAX_BALANCE, 2)}\n"
-
         r = sendMixin(msg, _type="PLAIN_POST")
 
 
@@ -265,22 +276,22 @@ def getTickers(exchange):
         sendAndRaise(f"{STRATEGY_NAME}: getTickers()错误, 程序退出。{e}")
 
 
-def getPrices(exchange):
-    # 获取所有币种的ticker数据
-    tickers = retryIt(exchange.fapiPublic_get_ticker_price)
-    tickers = pd.DataFrame(tickers)
-    tickers.set_index('symbol', inplace=True)
-    tickers = tickers.astype({"price": float}, copy=True)
-    return tickers['price']
-
-
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_fixed(SLEEP_SHORT),
     reraise=True,
     before_sleep=before_sleep_log(logger, logging.ERROR),
 )
-def getTopN(tickers, rule="/USDT", _type="quoteVolume", n=50):
+def getPrices(exchange):
+    # 获取所有币种的ticker数据
+    tickers = exchange.fetchTickers()
+    tickers = pd.DataFrame.from_dict(tickers, orient="index")
+    tickers = tickers.astype({"last": float}, copy=True)
+    return tickers["last"]
+
+
+def getTopN(tickers, rule="USDT", _type="quoteVolume", n=50):
+    if "/" not in rule: rule = "/" + rule
     tickers["timestamp"] = pd.to_datetime(tickers["timestamp"], unit="ms")
     tickers = tickers.filter(like=rule, axis=0)
     r = (
@@ -317,12 +328,22 @@ def getBalances(exchange):
         logger.exception(e)
         sendAndRaise(f"{STRATEGY_NAME}: getBalances()错误, 程序退出。{e}")
 
-
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
+)
 def getBalance(exchange, asset="usdt"):
     asset = asset.upper()
-    r = exchange.fapiPrivateGetAccount()["assets"]
-    r = pd.DataFrame(r)
-    bal = float(r.loc[r["asset"] == asset, "walletBalance"])
+    if MARKET == "swap":
+        r = exchange.fapiPrivateGetAccount()["assets"]
+        r = pd.DataFrame(r)
+        bal = float(r.loc[r["asset"] == asset, "walletBalance"])
+    elif MARKET == "spot":
+        r = exchange.privateGetAccount()["balances"]
+        r = pd.DataFrame(r)
+        bal = float(r.loc[r["asset"] == asset, "free"])
     return bal
 
 
@@ -362,6 +383,12 @@ def getKlines(exchangeId, level, amount, symbols):
     return klines
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(SLEEP_SHORT),
+    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.ERROR),
+)
 def getKlineForSymbol(exchange, level, amount, symbol):
     # amount += NEW_KLINE_NUM
 
@@ -385,7 +412,7 @@ def getKlineForSymbol(exchange, level, amount, symbol):
 def getKlinesMulProc(exchangeId, symbols, level, amount):
     singleGetKlines = partial(getKlines, exchangeId, level, amount)
     # pNum = min(cpu_count(), len(symbols))
-    pNum = len(symbols)
+    pNum = min(len(symbols), 100)
     logger.info(f"开启 {pNum} 线程获取k线")
     with TPool(processes=pNum) as pool:
         kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])
@@ -445,7 +472,7 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
     # 如果是测试, 执行时间在等待时间点之前, 为了校正offset, hh要+1, 
     # 如果是真实执行, 执行时间在时间点之后, hh不用+1
     holdHourSec += openLevelSec if IS_TEST else 0
-    df = df[df["candle_begin_time"] >= (runtime - dt.timedelta(seconds=holdHourSec))]
+    df = df[df["candle_begin_time"] > (runtime - dt.timedelta(seconds=holdHourSec))]
 
     return df
 
@@ -551,8 +578,11 @@ def getPosAim(chosen: pd.DataFrame, balance, leverage, offsetList, selectNum):
 
 def getSignal(posAim: pd.DataFrame, posNow: pd.DataFrame):
     # 获取当前持仓
-    posNow = posNow[["contracts", "timestamp"]].copy()
-    posNow.rename(columns={"contracts": "amount"}, inplace=True)
+    if MARKET == "swap":
+        posNow = posNow[["contracts", "timestamp"]].copy()
+        posNow.rename(columns={"contracts": "amount"}, inplace=True)
+    elif MARKET == "spot":
+        posNow = posNow.copy().rename(columns={"free": "amount"})
     logger.debug(f"当前持仓:\n{posNow}")
     # 合并当前持仓和目标持仓
     pos = pd.merge(posNow, posAim, how="outer", suffixes=("Now", "Aim"), left_index=True, right_index=True)
@@ -610,14 +640,21 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
     before_sleep=before_sleep_log(logger, logging.ERROR),
 )
 def getPositions(exchange):
-    # positions:
+    # swap positions:
     # info    id  contracts  contractSize  unrealizedPnl  leverage liquidationPrice  collateral  notional markPrice  entryPrice timestamp  initialMargin  initialMarginPercentage  maintenanceMargin  maintenanceMarginPercentage marginRatio datetime marginMode marginType  side  hedged percentage
+    # spot positions:
+    # free
     try:
-        p = exchange.fetchPositions()
-        p = pd.DataFrame(p)
-        p.set_index("symbol", inplace=True)
-        p.index.name = None
-        return p
+        if MARKET == "swap":
+            p = exchange.fetchPositions()
+            p = pd.DataFrame(p)
+            p.set_index("symbol", inplace=True)
+            p.index.name = None
+            return p
+        elif MARKET == "spot":
+            p = exchange.fetchBalance()["free"]
+            p = pd.DataFrame.from_dict(p, orient="index", columns=["free"])
+            return p
     except Exception as e:
         logger.exception(e)
         sendAndRaise(f"{STRATEGY_NAME}: getPositions()错误, 程序退出。{e}")
@@ -625,26 +662,38 @@ def getPositions(exchange):
 
 def getOpenPosition(exchange):
     pos = getPositions(exchange)
-    op = pos.loc[pos["contracts"] != 0]
-    op = op.astype(
-        {
-            "contracts": float,
-            "unrealizedPnl": float,
-            "leverage": float,
-            "liquidationPrice": float,
-            "collateral": float,
-            "notional": float,
-            "markPrice": float,
-            "entryPrice": float,
-            "marginType": str,
-            "side": str,
-            "percentage": float,
-            "timestamp": float,
-        }
-    )
-    op = op[["contracts", "notional", "percentage", "unrealizedPnl", "leverage", "entryPrice", "markPrice",
-             "liquidationPrice", "datetime", "side", "marginType", "timestamp"]]
-    return op
+
+    if MARKET == "swap":
+        op = pos.loc[pos["contracts"] != 0]
+        op = op.astype(
+            {
+                "contracts": float,
+                "unrealizedPnl": float,
+                "leverage": float,
+                "liquidationPrice": float,
+                "collateral": float,
+                "notional": float,
+                "markPrice": float,
+                "entryPrice": float,
+                "marginType": str,
+                "side": str,
+                "percentage": float,
+                "timestamp": float,
+            }
+        )
+        op = op[["contracts", "notional", "percentage", "unrealizedPnl", "leverage", "entryPrice", "markPrice",
+                 "liquidationPrice", "datetime", "side", "marginType", "timestamp"]]
+        return op
+
+    elif MARKET == "spot":
+        quote = ["USDT", "BUSD", "USDC"]
+        op = pos.loc[(pos["free"] != 0) & ~pos.index.isin(quote)]
+        op = op.rename(index=lambda s: f"{s}/{RULE}")
+        for s,row in op.iterrows():
+            op.loc[s, "price"] = exchange.fetchTicker(s)["last"]
+            op.loc[s, "cost"] = op.loc[s, "price"] * op.loc[s, "free"]
+        op = op[op["cost"] > MIN_SPOT_COST]
+        return op
 
 
 @retry(
@@ -679,15 +728,15 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
         try:
             symbolId = markets[symbol]["id"]
             amount = row["amount"]
-            price = prices[symbolId]
-            if abs(price * amount) < 7:
-                logger.debug(f"{symbol}买入金额小于7U,跳过该币种")
+            price = prices[symbol]
+            if abs(price * amount) < MIN_PAYMENT:
+                logger.debug(f"{symbol}交易金额小于 {MIN_PAYMENT}U,跳过该币种")
                 continue
 
             price = price * (1 + SLIPPAGE) if amount > 0 else price * (1 - SLIPPAGE)
             price = exchange.priceToPrecision(symbol, price)
             side = "BUY" if amount > 0 else "SELL"
-            reduceOnly = "true" if side == "SELL" else "false"
+            # reduceOnly = "true" if side == "SELL" else "false"
             try:
                 amount = exchange.amountToPrecision(symbol, abs(amount))
             except ccxt.ArgumentsRequired as e:
@@ -699,14 +748,19 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
                 "type": "LIMIT",
                 "price": price,
                 "quantity": amount,
-                "reduceOnly": reduceOnly,
+                # "reduceOnly": reduceOnly,
                 "timeInForce": "GTC",
             }
+
             logger.debug(f"{symbol}订单参数:{para}")
             orderParams.append(para)
-            # 设置杠杆和全仓模式
-            retryIt(exchange.fapiPrivatePostLeverage, paras={"symbol": symbolId, "leverage": leverage})
-            retryIt(exchange.fapiPrivatePostMargintype, paras={"symbol": symbolId, "marginType": marginType})
+
+            if MARKET == "swap":
+                # 设置杠杆和全仓模式
+                reduceOnly = "true" if side == "SELL" else "false"
+                para["reduceOnly"] = reduceOnly
+                retryIt(exchange.fapiPrivatePostLeverage, paras={"symbol": symbolId, "leverage": leverage})
+                retryIt(exchange.fapiPrivatePostMargintype, paras={"symbol": symbolId, "marginType": marginType})
         except Exception as e:
             sendAndPrintError(f"{STRATEGY_NAME} {symbol}构造订单信息出错,跳过该币种:{e}")
             logger.exception(e)
@@ -714,22 +768,25 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
 
     # 发送订单
     _n = "\n"
-    for i in range(0, len(orderParams), 5):
-        _orderP = orderParams[i: i + 5]
-        logger.debug(f"本次批量下单参数:\n{_n.join(map(str, _orderP))}")
+    # 对订单进行排序，先执行SELL后执行BUY
+    orderParams = sorted(orderParams, key=lambda _orderParams: _orderParams["side"], reverse=True)
+    for op in orderParams:
+        willCall = True if op["side"] == "SELL" else False
+        if MARKET == "swap":
+            fun = exchange.fapiPrivatePostOrder
+        elif MARKET == "spot":
+            fun = exchange.privatePostOrder
         r = retryIt(
-            exchange.fapiPrivatePostBatchorders,
-            paras={"batchOrders": json.dumps(_orderP)},
-            critical=True
+            fun,
+            paras=op,
+            critical=willCall,
         )
-        logger.debug(f"本次下单返回结果:\n{_n.join(map(str, r))}")
-
         # 检查订单状态
-        for idx, v in enumerate(r):
-            if "orderId" in v:
-                orderResp.append(v)
-            else:
-                sendAndPrintError(f"{STRATEGY_NAME} 下单出错: {_orderP[idx]}  {v}")
+        if "orderId" in r:
+            logger.debug(f"{op['symbol']} 下单回执: {r}")
+            orderResp.append(r)
+        else:
+            sendAndPrintError(f"{STRATEGY_NAME} {op['symbol']} 下单出错: {r}")
 
         time.sleep(SLEEP_SHORT)
 
@@ -755,10 +812,22 @@ def closePositionForce(exchange, markets, openPositions, symbol=None):
         symbolId = markets[s]["id"]
         para = {
             "symbol": symbolId,
-            "side": "SELL",
+            # "side": "SELL",
             "type": "MARKET",
-            "quantity": pos["contracts"],
-            "reduceOnly": True,
+            # "quantity": pos["contracts"],
+            # "reduceOnly": True,
         }
 
-        retryIt(exchange.fapiPrivatePostOrder, paras=para, critical=True)
+        if MARKET == "swap":
+            fun = exchange.fapiPrivatePostOrder
+            para["side"] = "SELL" if pos["side"] == "long" else "BUY"
+            para["quantity"] = pos["contracts"]
+            para["reduceOnly"] = True
+        elif MARKET == "spot":
+            fun = exchange.apiPrivatePostOrder
+            para["side"] = "SELL"
+            para["quantity"] = pos["free"]
+
+        logger.debug(f"平仓订单参数: {para}")
+        r = retryIt(fun, paras=para, critical=True)
+        logger.debug(f"平仓订单回执: {r}")
