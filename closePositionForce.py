@@ -21,6 +21,7 @@ if len(sys.argv) == 2:
     if "--close" == sys.argv[1]:
         print(f"\n\n\n正在执行清仓操作......")
         closePositionForce(ex, mkts, pos)
+        dushToBnb(ex)
 
         pos = getOpenPosition(ex)
         print(f"当前持仓情况:\n{pos}")
@@ -36,6 +37,7 @@ if len(sys.argv) == 2:
         symbol = sys.argv[1].replace("--close=", "")
         print(f"\n\n\n正在执行{symbol}的平仓操作.....")
         closePositionForce(ex, mkts, pos, symbol)
+        dushToBnb(ex)
 
         pos = getOpenPosition(ex)
         print(f"当前持仓情况:\n{pos}")
