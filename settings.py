@@ -12,7 +12,7 @@ SYMBOLS_BLACK = ["BTCDOM/USDT", "DEFI/USDT", "BLUEBIRD/USDT"]
 MARKET = "spot"
 RULE = "BUSD"
 TYPE = "quoteVolume"
-TOP = 300
+TOP = 50
 
 # 选币个数
 SELECTION_NUM = 1
@@ -61,19 +61,22 @@ FILTER_FACTORS = {
     },
 }
 
-# 页面杠杆率
+# 页面杠杆，仅swap
 LEVERAGE = 1
-# 资金上限，控制实际杠杆率
+# 资金上限，控制实际杠杆
 MAX_BALANCE = 90 / 100
-# 保证金模式
+# 保证金模式，仅swap
 MARGIN_TYPE = "CROSSED"
 # MARGIN_TYPE = "ISOLATED"
 # 限价单安全滑点
 SLIPPAGE = 0.1 / 100
 # 最小下单金额，更小忽略
 MIN_PAYMENT = 10
-# 现货账户中小额资产限额U, 低于该价值不计入持仓
+# 小额资产限额U, 低于该价值不计入持仓，仅spot
 MIN_SPOT_COST = 1
+# 余额下限U，余额小于时不交易，仅spot
+# 避免小余额造成的误调仓
+MIN_SPOT_BALANCE = 10
 
 # 获取最新k线的数量
 # 有使用EMA的计算需要大量k线让长均线(120)收敛到接近值

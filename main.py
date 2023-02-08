@@ -46,7 +46,9 @@ def main():
         balance = getBalance(exchange=ex, asset=RULE)
         logger.info(f"获取余额信息完毕, 当前资金 {round(balance, 2)}, "
                     f"可开资金 {round(balance * MAX_BALANCE, 2)}, "
-                    f"单币杠杆率 {LEVERAGE}, 实际杠杆率 {round(MAX_BALANCE * LEVERAGE, 2)}")
+                    f"页面杠杆 {LEVERAGE}, 实际杠杆 {round(MAX_BALANCE * LEVERAGE, 2)}")
+        if MARKET == "spot" and balance <= MIN_SPOT_BALANCE:
+            logger.info(f"可以资金低于余额下限 {MIN_SPOT_BALANCE}U, 本轮不交易")
         balance *= MAX_BALANCE
 
         # 获取当前持仓

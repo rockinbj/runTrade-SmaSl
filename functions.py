@@ -800,7 +800,11 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
     # 'updateTime': '1674768603876'}, ...]
     if orderResp:
         for k, v in enumerate(orderResp):
-            orderResp[k] = [v["side"], v["symbol"], v["cumQuote"]]
+            if MARKET == "swap":
+                cost = float(v["cumQuote"])
+            elif MARKET == "spot":
+                cost = float(v["cummulativeQuoteQty"])
+            orderResp[k] = [v["side"], v["symbol"], round(cost, 2)]
         orderResp = "\n".join([str(i) for i in orderResp])
     return orderResp
 
