@@ -688,11 +688,12 @@ def getOpenPosition(exchange):
     elif MARKET == "spot":
         quote = ["USDT", "BUSD", "USDC"]
         op = pos.loc[(pos["free"] != 0) & ~pos.index.isin(quote)]
-        op = op.rename(index=lambda s: f"{s}/{RULE}")
-        for s,row in op.iterrows():
-            op.loc[s, "price"] = exchange.fetchTicker(s)["last"]
-            op.loc[s, "cost"] = op.loc[s, "price"] * op.loc[s, "free"]
-        op = op[op["cost"] > MIN_SPOT_COST]
+        if not op.empty:
+            op = op.rename(index=lambda s: f"{s}/{RULE}")
+            for s,row in op.iterrows():
+                op.loc[s, "price"] = exchange.fetchTicker(s)["last"]
+                op.loc[s, "cost"] = op.loc[s, "price"] * op.loc[s, "free"]
+            op = op[op["cost"] > MIN_SPOT_COST]
         return op
 
 
