@@ -177,8 +177,12 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
 
         if MARKET == "spot":
             bal = getBalance(exchange, RULE)
-            costTotal = pos["cost"].sum()
+            if not pos.empty:
+                costTotal = pos["cost"].sum()
+            else:
+                costTotal = bal
             d = pos.to_dict(orient="index")
+
             msg += f"#### 账户权益 : {costTotal}U\n"
             msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
 
