@@ -412,7 +412,7 @@ def getKlineForSymbol(exchange, level, amount, symbol):
 def getKlinesMulProc(exchangeId, symbols, level, amount):
     singleGetKlines = partial(getKlines, exchangeId, level, amount)
     # pNum = min(cpu_count(), len(symbols))
-    pNum = min(len(symbols), 100)
+    pNum = min(len(symbols), MAX_THREATS)
     logger.info(f"开启 {pNum} 线程获取k线")
     with TPool(processes=pNum) as pool:
         kNew = pool.map(singleGetKlines, [[symbol] for symbol in symbols])

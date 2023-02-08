@@ -85,6 +85,8 @@ NEW_KLINE_NUM = 100
 AHEAD_SEC = 3
 # 向前偏移秒数，为了避免在同一时间下单造成踩踏
 OFFSET_SEC = 0
+# 并行线程最大数量
+MAX_THREATS = 50
 
 # 报告发送间隔分钟
 REPORT_INTERVAL = 30
