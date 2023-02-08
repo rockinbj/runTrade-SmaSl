@@ -11,6 +11,11 @@ pos = getOpenPosition(ex)
 print(f"当前持仓情况:\n{pos}\n")
 bal = getBalance(ex, asset=RULE)
 print(f"当前余额:\n{bal}\n")
+if not pos.empty:
+    value = pos["cost"].sum() + bal
+else:
+    value = bal
+print(f"账户权益:\n{value}")
 
 if len(sys.argv) == 2:
     if "--close" == sys.argv[1]:
@@ -21,6 +26,11 @@ if len(sys.argv) == 2:
         print(f"当前持仓情况:\n{pos}")
         bal = getBalance(ex, asset=RULE)
         print(f"当前余额:\n{bal}")
+        if not pos.empty:
+            value = pos["cost"].sum() + bal
+        else:
+            value = bal
+        print(f"账户权益:\n{value}")
 
     elif "--close=" in sys.argv[1]:
         symbol = sys.argv[1].replace("--close=", "")
