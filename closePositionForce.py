@@ -1,5 +1,3 @@
-import sys
-
 from functions import *
 
 print("如果需要清仓, 请加入'--close'参数")
@@ -10,10 +8,8 @@ ex = getattr(ccxt, EXCHANGE)(EXCHANGE_CONFIG)
 mkts = ex.loadMarkets()
 
 pos = getOpenPosition(ex)
-pos = pos[["contracts", "notional", "unrealizedPnl", "percentage", "leverage", "entryPrice", "markPrice",
-           "liquidationPrice", "marginType", "side", "datetime"]]
 print(f"当前持仓情况:\n{pos}\n")
-bal = getBalance(ex, asset="USDT")
+bal = getBalance(ex, asset=RULE)
 print(f"当前余额:\n{bal}\n")
 
 if len(sys.argv) == 2:
@@ -22,10 +18,8 @@ if len(sys.argv) == 2:
         closePositionForce(ex, mkts, pos)
 
         pos = getOpenPosition(ex)
-        pos = pos[["contracts", "notional", "unrealizedPnl", "percentage", "leverage", "entryPrice", "markPrice",
-                   "liquidationPrice"]]
         print(f"当前持仓情况:\n{pos}")
-        bal = getBalance(ex)
+        bal = getBalance(ex, asset=RULE)
         print(f"当前余额:\n{bal}")
 
     elif "--close=" in sys.argv[1]:
@@ -34,8 +28,6 @@ if len(sys.argv) == 2:
         closePositionForce(ex, mkts, pos, symbol)
 
         pos = getOpenPosition(ex)
-        pos = pos[["contracts", "notional", "unrealizedPnl", "percentage", "leverage", "entryPrice", "markPrice",
-                   "liquidationPrice"]]
         print(f"当前持仓情况:\n{pos}")
-        bal = getBalance(ex)
+        bal = getBalance(ex, asset=RULE)
         print(f"当前余额:\n{bal}")

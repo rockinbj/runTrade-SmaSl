@@ -334,7 +334,7 @@ def getBalances(exchange):
     reraise=True,
     before_sleep=before_sleep_log(logger, logging.ERROR),
 )
-def getBalance(exchange, asset="usdt"):
+def getBalance(exchange, asset=RULE):
     asset = asset.upper()
     if MARKET == "swap":
         r = exchange.fapiPrivateGetAccount()["assets"]
@@ -829,12 +829,12 @@ def closePositionForce(exchange, markets, openPositions, symbol=None):
         if MARKET == "swap":
             fun = exchange.fapiPrivatePostOrder
             para["side"] = "SELL" if pos["side"] == "long" else "BUY"
-            para["quantity"] = pos["contracts"]
+            para["quantity"] = exchange.amountToPrecision(s, pos["contracts"])
             para["reduceOnly"] = True
         elif MARKET == "spot":
-            fun = exchange.apiPrivatePostOrder
+            fun = exchange.privatePostOrder
             para["side"] = "SELL"
-            para["quantity"] = pos["free"]
+            para["quantity"] = exchange.amountToPrecision(s, pos["free"])
 
         logger.debug(f"平仓订单参数: {para}")
         if not SKIP_TRADE:
