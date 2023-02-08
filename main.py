@@ -38,7 +38,8 @@ def main():
 
     # 开始运行策略
     while True:
-
+        logger.info("\n\n\n")
+        logger.info(f"==========开始新一轮计算==========")
         # 获取币池列表
         mkts = ex.loadMarkets()
         logger.info(f"获取币种信息完毕, 共 {len(mkts)}")
