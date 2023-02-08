@@ -119,12 +119,11 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         logger.debug("开始发送报告")
 
         pos = getOpenPosition(exchange)
+        msg = f"### {STRATEGY_NAME} - 策略报告\n\n"
         if MARKET == "swap":
             bTot, bBal, bPos = getBalances(exchange)
             bal = round(float(bTot.iloc[0]["availableBalance"]), 2)
             wal = round(float(bTot.iloc[0]["totalMarginBalance"]), 2)
-
-            msg = f"### {STRATEGY_NAME} - 策略报告\n\n"
 
             if pos.shape[0] > 0:
                 pos = pos[
@@ -175,6 +174,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             else:
                 msg += "#### 当前空仓\n"
 
+        ## 现货报告
         if MARKET == "spot":
             bal = getBalance(exchange, RULE)
             if not pos.empty:
