@@ -12,7 +12,7 @@ SYMBOLS_BLACK = ["BTCDOM/USDT", "DEFI/USDT", "BLUEBIRD/USDT"]
 MARKET = "spot"
 RULE = "BUSD"
 TYPE = "quoteVolume"
-TOP = 10
+TOP = 300
 
 # 选币个数
 SELECTION_NUM = 1
@@ -64,7 +64,7 @@ FILTER_FACTORS = {
 # 页面杠杆，仅swap
 LEVERAGE = 1
 # 资金上限，控制实际杠杆
-MAX_BALANCE = 90 / 100
+MAX_BALANCE = 92 / 100
 # 保证金模式，仅swap
 MARGIN_TYPE = "CROSSED"
 # MARGIN_TYPE = "ISOLATED"
@@ -76,7 +76,7 @@ MIN_PAYMENT = 10
 MIN_SPOT_COST = 10
 # 余额下限U，余额小于时不交易，仅spot
 # 避免小余额造成的误调仓
-MIN_SPOT_BALANCE = 10
+MIN_SPOT_BALANCE = 12
 
 # 获取最新k线的数量
 # 有使用EMA的计算需要大量k线让长均线(120)收敛到接近值

@@ -31,3 +31,9 @@ if len(sys.argv) == 2:
         print(f"当前持仓情况:\n{pos}")
         bal = getBalance(ex, asset=RULE)
         print(f"当前余额:\n{bal}")
+        if not pos.empty:
+            value = pos["cost"].sum() + bal
+        else:
+            value = bal
+        print(f"账户权益:\n{value}")
+
