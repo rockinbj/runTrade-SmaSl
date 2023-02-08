@@ -852,7 +852,7 @@ def dushToBnb(exchange):
     assets = []
     skips = [RULE]
     dushAssets = exchange.sapiPostAssetDustBtc()
-    logger.debug(f"获取小额资产: {dushAssets}")
+    logger.debug(f"小额资产报告: {dushAssets}")
     if dushAssets["details"]:
         assets = [s["asset"] for s in dushAssets["details"] if s["asset"] not in skips]
 
@@ -880,3 +880,5 @@ def dushToBnb(exchange):
         else:
             logger.debug(f"小额置换回 {RULE} 时失败: {r}")
             return False
+    else:
+        logger.debug(f"没有可转换的小额资产")
