@@ -867,7 +867,12 @@ def dushToBnb(exchange):
         # 将转换回来的bnb置换成U
         symbol = "BNB" + "/" + RULE
         amount = float(r['totalTransfered']) - float(r['totalServiceCharge'])
-        r = exchange.createOrder(symbol=symbol, type="market", side="sell", amount=amount)
+        try:
+            r = exchange.createOrder(symbol=symbol, type="market", side="sell", amount=amount)
+        except Exception as e:
+            logger.debug(f"小额置换回 {RULE} 时失败: {e}")
+            return False
+
         if "id" in r and r["id"]:
             value = round(r['price']*r['filled'],2)
             logger.debug(f"小额置换回{RULE}: {value}")
