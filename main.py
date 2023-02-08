@@ -173,6 +173,11 @@ def main():
             else:
                 logger.info(f"本周期无下单结果")
 
+        # 小额置换
+        if MARKET == "spot":
+            logger.info(f"开始执行小额散币置换")
+            dushToBnb(exchange=ex)
+
         del mkts, balance, posNow, posAim, tickers, symbols, kDict, kDf, sig
         logger.info(f"本周期操作结束, 进入下一周期\n\n\n")
         if IS_TEST: exit()
