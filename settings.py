@@ -12,7 +12,7 @@ SYMBOLS_BLACK = ["BTCDOM/USDT", "DEFI/USDT", "BLUEBIRD/USDT"]
 MARKET = "spot"
 RULE = "BUSD"
 TYPE = "quoteVolume"
-TOP = 50
+TOP = 10
 
 # 选币个数
 SELECTION_NUM = 1

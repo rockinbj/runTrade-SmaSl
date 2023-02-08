@@ -776,19 +776,21 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
             fun = exchange.fapiPrivatePostOrder
         elif MARKET == "spot":
             fun = exchange.privatePostOrder
-        r = retryIt(
-            fun,
-            paras=op,
-            critical=willCall,
-        )
-        # 检查订单状态
-        if "orderId" in r:
-            logger.debug(f"{op['symbol']} 下单回执: {r}")
-            orderResp.append(r)
-        else:
-            sendAndPrintError(f"{STRATEGY_NAME} {op['symbol']} 下单出错: {r}")
 
-        time.sleep(SLEEP_SHORT)
+        if not SKIP_TRADE:
+            r = retryIt(
+                fun,
+                paras=op,
+                critical=willCall,
+            )
+            # 检查订单状态
+            if "orderId" in r:
+                logger.debug(f"{op['symbol']} 下单回执: {r}")
+                orderResp.append(r)
+            else:
+                sendAndPrintError(f"{STRATEGY_NAME} {op['symbol']} 下单出错: {r}")
+
+            time.sleep(SLEEP_SHORT)
 
     # 整理订单回执，去掉无用信息
     # Order Response Format:
@@ -806,6 +808,7 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
                 cost = float(v["cummulativeQuoteQty"])
             orderResp[k] = [v["side"], v["symbol"], round(cost, 2)]
         orderResp = "\n".join([str(i) for i in orderResp])
+
     return orderResp
 
 
@@ -833,5 +836,6 @@ def closePositionForce(exchange, markets, openPositions, symbol=None):
             para["quantity"] = pos["free"]
 
         logger.debug(f"平仓订单参数: {para}")
-        r = retryIt(fun, paras=para, critical=True)
-        logger.debug(f"平仓订单回执: {r}")
+        if not SKIP_TRADE:
+            r = retryIt(fun, paras=para, critical=True)
+            logger.debug(f"平仓订单回执: {r}")
