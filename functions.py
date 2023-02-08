@@ -118,8 +118,9 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
     if (nowMinute % interval == 0) and (nowSecond == 59):
         logger.debug("开始发送报告")
 
-        pos = getOpenPosition(exchange)
         msg = f"### {STRATEGY_NAME} - 策略报告\n\n"
+
+        pos = getOpenPosition(exchange)
         if MARKET == "swap":
             bTot, bBal, bPos = getBalances(exchange)
             bal = round(float(bTot.iloc[0]["availableBalance"]), 2)
@@ -179,11 +180,12 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             bal = getBalance(exchange, RULE)
             if not pos.empty:
                 costTotal = pos["cost"].sum()
+                costTotal += bal
             else:
                 costTotal = bal
             d = pos.to_dict(orient="index")
 
-            msg += f"#### 账户权益 : {costTotal}U\n"
+            msg += f"#### 账户权益 : {round(costTotal, 2)}U\n"
             msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
 
             for k, v in d.items():
