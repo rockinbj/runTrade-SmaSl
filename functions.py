@@ -858,27 +858,32 @@ def dushToBnb(exchange):
 
     if assets:
         logger.debug(f"可转换的小额资产: {assets}")
-        r = exchange.sapiPostAssetDust({"asset":assets})
-        if "totalTransfered" in r:
-            logger.debug(f"小额资产共转换BNB: {r['totalTransfered']}, 手续费 {r['totalServiceCharge']}")
-        else:
-            logger.debug(f"小额转换失败: {r}")
+        try:
+            r = exchange.sapiPostAssetDust({"asset":assets})
+            if "totalTransfered" in r:
+                logger.debug(f"小额资产共转换BNB: {r['totalTransfered']}, 手续费 {r['totalServiceCharge']}")
+            else:
+                logger.debug(f"小额转换失败: {r}")
+                return False
+        except Exception as e:
+            logger.debug(f"小额置换失败: {e}")
+            return False
 
         # 将转换回来的bnb置换成U
         symbol = "BNB" + "/" + RULE
         amount = float(r['totalTransfered']) - float(r['totalServiceCharge'])
         try:
             r = exchange.createOrder(symbol=symbol, type="market", side="sell", amount=amount)
+            if "id" in r and r["id"]:
+                value = round(r['price'] * r['filled'], 2)
+                logger.debug(f"小额置换回{RULE}: {value}")
+                return value
+            else:
+                logger.debug(f"小额置换回 {RULE} 时失败: {r}")
+                return False
         except Exception as e:
             logger.debug(f"小额置换回 {RULE} 时失败: {e}")
             return False
 
-        if "id" in r and r["id"]:
-            value = round(r['price']*r['filled'],2)
-            logger.debug(f"小额置换回{RULE}: {value}")
-            return value
-        else:
-            logger.debug(f"小额置换回 {RULE} 时失败: {r}")
-            return False
     else:
         logger.debug(f"没有可转换的小额资产")
