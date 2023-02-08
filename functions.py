@@ -839,3 +839,20 @@ def closePositionForce(exchange, markets, openPositions, symbol=None):
         if not SKIP_TRADE:
             r = retryIt(fun, paras=para, critical=True)
             logger.debug(f"平仓订单回执: {r}")
+
+
+def dushToBnb(exchange):
+    assets = []
+    skips = [RULE]
+    dushAssets = exchange.sapiPostAssetDustBtc()
+    logger.debug(f"获取小额资产: {dushAssets}")
+    if dushAssets["details"]:
+        assets = [s["asset"] for s in dushAssets["details"] if s["asset"] not in skips]
+
+    if assets:
+        logger.debug(f"可转换的小额资产: {assets}")
+        r = exchange.sapiPostAssetDust({"asset":assets})
+        if "totalTransfered" in r:
+            logger.debug(f"小额资产共转换BNB: {r['totalTransfered']}, 手续费 {r['totalServiceCharge']}")
+        else:
+            logger.debug(f"小额转换失败: {r}")

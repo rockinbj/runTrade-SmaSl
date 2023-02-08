@@ -1,7 +1,7 @@
 # 策略命名
 STRATEGY_NAME = "鹤-offset-spot-Test"
 IS_TEST = True
-SKIP_TRADE = True
+SKIP_TRADE = False
 
 # 轮动池黑白名单,格式"BTC/USDT"
 SYMBOLS_WHITE = []
@@ -73,7 +73,7 @@ SLIPPAGE = 0.1 / 100
 # 最小下单金额，更小忽略
 MIN_PAYMENT = 10
 # 小额资产限额U, 低于该价值不计入持仓，仅spot
-MIN_SPOT_COST = 1
+MIN_SPOT_COST = 10
 # 余额下限U，余额小于时不交易，仅spot
 # 避免小余额造成的误调仓
 MIN_SPOT_BALANCE = 10
