@@ -40,7 +40,7 @@ def callAlarm(strategyName=STRATEGY_NAME, content="存在严重风险项，请�
     try:
         r = requests.post(url + para)
         if r.json()["result"] != "success":
-            sendAndPrintError(f"电话告警触发失败，可能有严重风险，请立即检查！{r.text}")
+            sendAndPrintError(f"{STRATEGY_NAME} 电话告警触发失败，可能有严重风险，请立即检查！{r.text}")
     except Exception as e:
         logger.error(f"电话告警触发失败，可能有严重风险，请立即检查！{e}")
         logger.exception(e)
@@ -136,15 +136,14 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             d = pos.to_dict(orient="index")
 
             msg += f"#### 账户权益 : {wal}U\n"
-            msg += f"#### 可用余额 : {bal}U\n"
             msg += f'#### 当前持币 : {", ".join(list(d.keys()))}'
 
             for k, v in d.items():
                 msg += f"""
 ##### {k}
- - 持仓价值(U) : {v["持仓价值(U)"]}
  - 盈亏比例(%) : {v["盈亏比例(%)"]}
  - 未实现盈亏(U) : {v["未实现盈亏(U)"]}
+ - 持仓价值(U) : {v["持仓价值(U)"]}
  - 开仓价格(U) : {v["开仓价格(U)"]}
  - 标记价格(U) : {v["标记价格(U)"]}
  - 爆仓价格(U) : {v["爆仓价格(U)"]}
@@ -156,13 +155,16 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
             msg += "#### 当前空仓\n"
 
         msg += f"#### 轮动数量 : {TOP+len(SYMBOLS_WHITE)-len(SYMBOLS_BLACK)}\n"
-        msg += f"#### 开仓因子 : {OPEN_LEVEL}*{OPEN_PERIOD}\n"
+        msg += f"#### 选币数量 : {SELECTION_NUM}\n"
+        msg += f"#### 持仓时间 : {HOLD_TIME}\n"
+        msg += f"#### 开仓因子 : {OPEN_FACTOR} {OPEN_LEVEL}*{OPEN_PERIOD}\n"
         msg += f"#### 过滤因子1 : {FILTER_FACTOR}{CLOSE_PERIOD}\n"
         msg += f"#### 过滤因子2 : Increase>{MIN_CHANGE*100}%\n"
-        msg += f"#### 平仓因子 : {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
-        msg += f"#### 固定止损 : {SL_PERCENT if ENABLE_SL else 'False'}\n"
-        msg += f"#### 跟踪止盈 : {TP_PERCENT if ENABLE_TP else 'False'}\n"
-        msg += f"#### 资金限额 : {MAX_BALANCE*100}%\n"
+        msg += f"#### 平仓因子 : {CLOSE_FACTOR} {CLOSE_LEVEL}*{CLOSE_PERIOD}\n"
+        msg += f"#### 可用余额 : {bal}U\n"
+        msg += f"#### 页面杠杆 : {LEVERAGE}\n"
+        msg += f"#### 资金上限 : {MAX_BALANCE*100}%\n"
+        msg += f"#### 实际杠杆 : {round(LEVERAGE * MAX_BALANCE, 2)}\n"
 
         sendMixin(msg, _type="PLAIN_POST")
 
@@ -317,8 +319,8 @@ def getBalances(exchange):
         sendAndRaise(f"{STRATEGY_NAME}: getBalances()错误，程序退出。{e}")
 
 
-def getBalance(exchange, symbol="usdt"):
-    symbol = symbol.upper()
+def getBalance(exchange, asset="usdt"):
+    symbol = asset.upper()
     b = exchange.fetchBalance()[symbol]
     # b = {'free': 18.89125761, 'used': 27.08454256, 'total': 45.97736273}
     return b
@@ -922,7 +924,7 @@ def placeBatchOrderClose(exchange, symbols, markets):
             responsesTotal += response
 
         except Exception as e:
-            sendAndCritical(e)
+            sendAndCritical(f"{STRATEGY_NAME} {e}")
             logger.exception(e)
 
     for index, r in enumerate(responsesTotal):
@@ -939,7 +941,7 @@ def placeBatchOrderClose(exchange, symbols, markets):
                     break
                 else:
                     if i == MAX_TRY - 1:
-                        sendAndCritical(f"{r['symbol']}平仓查询三次仍不成功，请检查")
+                        sendAndCritical(f"{STRATEGY_NAME} {r['symbol']}平仓查询三次仍不成功，请检查")
                         break
             else:
                 sendAndCritical(
@@ -951,7 +953,7 @@ def placeBatchOrderClose(exchange, symbols, markets):
 
 def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
     # symbols = [a,b,c]
-    balance = getBalance(exchange, symbol="USDT")["free"] * MAX_BALANCE
+    balance = getBalance(exchange, asset="USDT")["free"] * MAX_BALANCE
     # 本次使用的余额=总余额/未建仓数量
     eachCash = int(balance / selectNum)
 
@@ -1008,7 +1010,7 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
             responsesTotal += response
 
         except Exception as e:
-            sendAndCritical(e)
+            sendAndCritical(f"{STRATEGY_NAME} {e}")
             logger.exception(e)
 
     for index, r in enumerate(responsesTotal):
@@ -1025,7 +1027,7 @@ def placeBatchOrderOpen(exchange, symbols, markets, selectNum):
                     break
                 else:
                     if i == MAX_TRY - 1:
-                        sendAndCritical(f"{r['symbol']}买入单查询三次仍不成功，请检查")
+                        sendAndCritical(f"{STRATEGY_NAME} {r['symbol']}买入单查询三次仍不成功，请检查")
                         break
             else:
                 sendAndCritical(
@@ -1117,10 +1119,11 @@ def closePosition(
     return closed
 
 
-def closePositionForce(exchange, markets, openPostions):
-
-    for symbol, pos in openPostions.iterrows():
-        symbolId = markets[symbol]["id"]
+def closePositionForce(exchange, markets, openPostions, symbol=None):
+    # 如果没有symbol参数, 清空所有持仓, 如果有symbol只平仓指定币种
+    for s, pos in openPostions.iterrows():
+        if symbol is not None and s != symbol: continue
+        symbolId = markets[s]["id"]
         para = {
             "symbol": symbolId,
             "side": "SELL",
@@ -1131,7 +1134,7 @@ def closePositionForce(exchange, markets, openPostions):
         try:
             exchange.fapiPrivatePostOrder(para)
         except Exception as e:
-            logger.error(f"closePositionForce({symbol})强制平仓出错: {e}")
+            logger.error(f"closePositionForce({s})强制平仓出错: {e}")
             logger.exception(e)
 
 
