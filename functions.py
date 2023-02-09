@@ -872,7 +872,7 @@ def getCloseSignal(df, factor, period, method):
         r = c1 < f1
     elif method == "xxx":
         pass
-
+    logger.debug(f"close signal: factor-{factor} method-{method} close-{c1} factor-{f1} result-{r}")
     return r
 
 
@@ -1101,7 +1101,9 @@ def closePosition(
         reachHoldTime = (
             time.time() * 1000 - openPositions.loc[symbol, "timestamp"]
         ) >= ex.parseTimeframe(holdTime) * 1000
+        logger.debug(f"check close: closeSig-{closeSig} reachHoldTime-{reachHoldTime}")
         if closeSig or reachHoldTime:
+            logger.debug(f"closeSig or reachHoldTime is True")
             if reachHoldTime:
                 sendAndPrintInfo(f"{STRATEGY_NAME} {symbol}满足持仓时间平仓")
             if closeSig:
