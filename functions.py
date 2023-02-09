@@ -874,7 +874,9 @@ def getCloseSignal(df, factor, period, method):
         r = c1 < f1
     elif method == "xxx":
         pass
-    logger.debug(f"close signal: factor-{factor} method-{method} close-{c1} factor-{f1} result-{r}")
+    logger.debug(f"close signal: factor:{factor} method:{method} period:{period} "
+                 f"close:{c1} factor:{f1} result:{r}"
+                 f"df:\n{df}")
     return r
 
 
