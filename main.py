@@ -33,7 +33,7 @@ def main():
 
     # 开始运行策略
     while True:
-
+        logger.info(f"\n\n{'='*30}开始新周期计算{'='*30}\n\n")
         # 获取币池列表
         mkts = ex.loadMarkets()
         logger.info(f"获取币种信息完毕, 共 {len(mkts)}")
@@ -142,6 +142,9 @@ def main():
 
         # 目标持仓与当前持仓合并, 成为交易信号
         posNow = getOpenPosition(exchange=ex)
+        if posNow.empty and posAim.empty:
+            logger.info(f"现有持仓和目标持仓均为空，本周期结束")
+            continue
         sig = getSignal(posAim, posNow)
         logger.info(f"当前持仓与目标持仓合并后的交易信号:\n{sig}")
 
