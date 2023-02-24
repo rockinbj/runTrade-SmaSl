@@ -531,9 +531,10 @@ def getOpenSignal(
 
         filterCoins = []
         for symbol, df in klines.items():
-            isOk = getFilterSignal(df, factor=filterFactor, period=filterPeriod)
-            if isOk:
-                filterCoins.append(symbol)
+            if df is not None and not df.empty:
+                isOk = getFilterSignal(df, factor=filterFactor, period=filterPeriod)
+                if isOk:
+                    filterCoins.append(symbol)
 
         if filterCoins:
             logger.debug(f"本周期符合filterFactor的币种{filterCoins}")
