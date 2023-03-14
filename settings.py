@@ -13,7 +13,7 @@ SYMBOLS_BLACK = ["BTCDOM/USDT", "DEFI/USDT", "BLUEBIRD/USDT"]
 # 只选取USDT交易对的成交量topN
 RULE = "/USDT"
 TYPE = "quoteVolume"
-TOP = 200
+TOP = 60
 
 # 选币个数
 SELECTION_NUM = 1
@@ -27,8 +27,8 @@ OPEN_LEVEL = "1h"
 OPEN_PERIOD = 6
 
 # 持仓时间，offset
-HOLD_TIME = "24h"
-OFFSET_LIST = [0,12]
+HOLD_TIME = "48h"
+OFFSET_LIST = [8,32]
 
 # 平仓参数，例如4h级别close小于MA30
 CLOSE_LEVEL = "4h"
@@ -78,15 +78,16 @@ AHEAD_SEC = 3
 OFFSET_SEC = 0
 
 # 报告发送间隔分钟
-REPORT_INTERVAL = 30
+REPORT_INTERVAL = "30m"
 # 重要告警是否拨打电话
 CALL_ALARM = True
 
 # 设置Log
-import logging
-LOG_PATH = "log"
-LOG_LEVEL_CONSOLE = logging.DEBUG
-LOG_LEVEL_FILE = logging.DEBUG
+LOG_LEVEL_CONSOLE = "debug"
+LOG_LEVEL_FILE = "debug"
+from pathlib import Path
+ROOT_PATH = Path(__file__).resolve().parent
+LOG_PATH = ROOT_PATH / "log"
 
 # 休眠时间
 SLEEP_SHORT = 0.5
