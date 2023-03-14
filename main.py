@@ -1,7 +1,4 @@
 # this is code for offset branch
-from multiprocessing import Pool as PPool
-from multiprocessing import current_process
-
 from functions import *
 from settings import *
 
@@ -10,26 +7,9 @@ pd.set_option("display.unicode.east_asian_width", True)
 logger = logging.getLogger("app.main")
 
 
-def reporter(exchangeId, interval):
-    process = current_process()
-    process.name = "Reporter"
-    while True:
-        try:
-            sendReport(exchangeId, interval)
-        except Exception as e:
-            sendAndPrintError(f"{RUN_NAME} 发送报告错误{e}")
-            logger.exception(e)
-        time.sleep(0.5)
-
-
 def main():
-    ex = getattr(ccxt, EXCHANGE)(EXCHANGE_CONFIG)
-    exId = EXCHANGE
-
-    # 开启一个非阻塞的报告进程
-    rptpool = PPool(1)
-    rptpool.apply_async(reporter, args=(EXCHANGE, REPORT_INTERVAL))
-    _n = "\n"
+    exId = EXCHANGE_ID
+    ex = getattr(ccxt, EXCHANGE_ID)(EXCHANGE_CONFIG)
 
     # 开始运行策略
     while True:
