@@ -439,13 +439,15 @@ def getOffset(exchange, df, holdHour, openLevel, offsetList, runtime):
     holdHourSec = exchange.parseTimeframe(holdHour)
     openLevelSec = exchange.parseTimeframe(openLevel)
     df = df.copy()
-    df["offset"] = df["candle_begin_time"].astype("int64") // 10 ** 9 % holdHourSec // openLevelSec
-    df = df.loc[df["offset"].isin(offsetList)]
-    df.sort_values(by="candle_begin_time", inplace=True)
-    # 如果是测试, 执行时间在等待时间点之前, 为了校正offset, hh要+1, 
+
+    # 如果是测试, 执行时间在等待时间点之前, 为了校正offset, hh要+1,
     # 如果是真实执行, 执行时间在时间点之后, hh不用+1
     holdHourSec += openLevelSec if IS_TEST else 0
     df = df[df["candle_begin_time"] >= (runtime - dt.timedelta(seconds=holdHourSec))]
+
+    df["offset"] = df["candle_begin_time"].astype("int64") // 10 ** 9 % holdHourSec // openLevelSec
+    df = df.loc[df["offset"].isin(offsetList)]
+    df.sort_values(by="candle_begin_time", inplace=True)
 
     return df
 
