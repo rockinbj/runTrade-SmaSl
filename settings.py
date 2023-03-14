@@ -1,5 +1,7 @@
 # 策略命名
-STRATEGY_NAME = "鹤-offset-Test"
+RUN_NAME = "鹤-offset-Test"
+EXCHANGE_ID = "binance"
+
 IS_TEST = True
 SKIP_TRADE = True
 
@@ -56,7 +58,7 @@ FILTER_FACTORS = {
 }
 
 # 页面杠杆率
-LEVERAGE = 2
+PAGE_LEVERAGE = 2
 # 资金上限，控制实际杠杆率
 MAX_BALANCE = 50 / 100
 # 保证金模式

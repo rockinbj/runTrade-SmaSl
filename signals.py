@@ -2,7 +2,7 @@ import random
 import pandas as pd
 import pandas_ta as ta
 
-from logger import *
+from utils.logger import *
 
 pd.set_option('expand_frame_repr', False)  # 当列太多时不换行
 pd.set_option('display.max_rows', 5000)  # 最多显示数据的行数

@@ -17,7 +17,7 @@ def reporter(exchangeId, interval):
         try:
             sendReport(exchangeId, interval)
         except Exception as e:
-            sendAndPrintError(f"{STRATEGY_NAME} 发送报告错误{e}")
+            sendAndPrintError(f"{RUN_NAME} 发送报告错误{e}")
             logger.exception(e)
         time.sleep(0.5)
 
@@ -41,7 +41,7 @@ def main():
         balance = getBalance(exchange=ex, asset="usdt")
         logger.info(f"获取余额信息完毕, 当前资金 {round(balance, 2)}, "
                     f"可开资金 {round(balance * MAX_BALANCE, 2)}, "
-                    f"单币杠杆率 {LEVERAGE}, 实际杠杆率 {round(MAX_BALANCE * LEVERAGE, 2)}")
+                    f"单币杠杆率 {PAGE_LEVERAGE}, 实际杠杆率 {round(MAX_BALANCE * PAGE_LEVERAGE, 2)}")
         balance *= MAX_BALANCE
 
         # 获取当前持仓
@@ -108,7 +108,7 @@ def main():
         logger.info(f"后置过滤因子筛选后的币种 {kDf['symbol'].drop_duplicates().count()} "
                     f"总共k线 {kDf.shape[0]}")
         if len(kDict) == 0:
-            sendAndPrintInfo(f"{STRATEGY_NAME} 本周期无合格币种，等待下一周期\n\n\n")
+            sendAndPrintInfo(f"{RUN_NAME} 本周期无合格币种，等待下一周期\n\n\n")
             continue
 
         # 选币
@@ -134,7 +134,7 @@ def main():
         posAim = getPosAim(
             chosen=kDf,
             balance=balance,
-            leverage=LEVERAGE,
+            leverage=PAGE_LEVERAGE,
             offsetList=OFFSET_LIST,
             selectNum=SELECTION_NUM,
         )
@@ -156,11 +156,11 @@ def main():
                 markets=mkts,
                 prices=prices,
                 signal=sig,
-                leverage=LEVERAGE,
+                leverage=PAGE_LEVERAGE,
                 marginType=MARGIN_TYPE,
             )
             if ordersResp:
-                sendAndPrintInfo(f"{STRATEGY_NAME} 本周期下单结果:\n{ordersResp}")
+                sendAndPrintInfo(f"{RUN_NAME} 本周期下单结果:\n{ordersResp}")
             else:
                 logger.info(f"本周期无下单结果")
 
@@ -174,6 +174,6 @@ if __name__ == "__main__":
         try:
             main()
         except Exception as e:
-            sendAndPrintError(f"{STRATEGY_NAME} 主程序异常, 自动重启, 请检查{e}")
+            sendAndPrintError(f"{RUN_NAME} 主程序异常, 自动重启, 请检查{e}")
             logger.exception(e)
             continue

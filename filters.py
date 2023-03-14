@@ -2,7 +2,7 @@ import logging
 
 import pandas as pd
 import pandas_ta as ta
-from logger import *
+from utils.logger import *
 from functions import resampleKlines
 
 logger = logging.getLogger("app.filt")

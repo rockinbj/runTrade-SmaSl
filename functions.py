@@ -13,7 +13,7 @@ from tenacity import *
 
 import signals
 from exchangeConfig import *
-from logger import *
+from utils.logger import *
 from settings import *
 
 
@@ -36,7 +36,7 @@ def retryIt(fun, paras={}, retryTimes=MAX_TRY, retryWaitFor=RETRY_WAIT, critical
             logger.exception(e)
             time.sleep(retryWaitFor)
             if i == retryTimes - 1:
-                f = f"{STRATEGY_NAME} {fun.__name__} retryIt()重试{retryTimes}次无效, 请检查日志。程序提交异常。{e}"
+                f = f"{RUN_NAME} {fun.__name__} retryIt()重试{retryTimes}次无效, 请检查日志。程序提交异常。{e}"
                 if critical:
                     sendAndCritical("！严重级别告警！" + f)
                 else:
@@ -51,7 +51,7 @@ def retryIt(fun, paras={}, retryTimes=MAX_TRY, retryWaitFor=RETRY_WAIT, critical
     reraise=True,
     before_sleep=before_sleep_log(logger, logging.ERROR),
 )
-def callAlarm(strategyName=STRATEGY_NAME, content="存在严重风险项, 请立即检查"):
+def callAlarm(strategyName=RUN_NAME, content="存在严重风险项, 请立即检查"):
     url = "http://api.aiops.com/alert/api/event"
     apiKey = "66e6aeab4218431f8afe7e76ac96c38e"
     eventId = str(int(time.time()))
@@ -102,7 +102,7 @@ def sendAndPrintError(msg):
 def sendAndCritical(msg):
     logger.critical(msg)
     if CALL_ALARM:
-        callAlarm(strategyName=STRATEGY_NAME, content=msg)
+        callAlarm(strategyName=RUN_NAME, content=msg)
     sendMixin(msg)
 
 
@@ -126,7 +126,7 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         bal = round(float(bTot.iloc[0]["availableBalance"]), 2)
         wal = round(float(bTot.iloc[0]["totalMarginBalance"]), 2)
 
-        msg = f"### {STRATEGY_NAME} - 策略报告\n\n"
+        msg = f"### {RUN_NAME} - 策略报告\n\n"
 
         if pos.shape[0] > 0:
             pos = pos[
@@ -187,9 +187,9 @@ def sendReport(exchangeId, interval=REPORT_INTERVAL):
         msg += f"#### 平仓因子 : {CLOSE_LEVEL} close<{CLOSE_FACTOR}{CLOSE_PERIODS[0]}\n"
         msg += f"#### 平仓因子 : {CLOSE_LEVEL} close<{CLOSE_FACTOR}{CLOSE_PERIODS[0]}\n"
         msg += f"#### 账户余额 : {round(bal, 2)}U\n"
-        msg += f"#### 页面杠杆 : {LEVERAGE}\n"
+        msg += f"#### 页面杠杆 : {PAGE_LEVERAGE}\n"
         msg += f"#### 资金上限 : {MAX_BALANCE * 100}%\n"
-        msg += f"#### 实际杠杆 : {round(LEVERAGE * MAX_BALANCE, 2)}\n"
+        msg += f"#### 实际杠杆 : {round(PAGE_LEVERAGE * MAX_BALANCE, 2)}\n"
 
         r = sendMixin(msg, _type="PLAIN_POST")
 
@@ -213,7 +213,7 @@ def nextStartTime(level, ahead_seconds=3, offsetSec=0):
     elif level.endswith('H'):
         level = level.replace('H', 'h')
     else:
-        sendAndRaise(f"{STRATEGY_NAME}: level格式错误。程序退出。")
+        sendAndRaise(f"{RUN_NAME}: level格式错误。程序退出。")
 
     ti = pd.to_timedelta(level)
     now_time = dt.datetime.now()
@@ -262,7 +262,7 @@ def getTickers(exchange):
         return tk
     except Exception as e:
         logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getTickers()错误, 程序退出。{e}")
+        sendAndRaise(f"{RUN_NAME}: getTickers()错误, 程序退出。{e}")
 
 
 def getPrices(exchange):
@@ -315,7 +315,7 @@ def getBalances(exchange):
         return total, balances, positions
     except Exception as e:
         logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getBalances()错误, 程序退出。{e}")
+        sendAndRaise(f"{RUN_NAME}: getBalances()错误, 程序退出。{e}")
 
 
 def getBalance(exchange, asset="usdt"):
@@ -597,7 +597,7 @@ def checkStoploss(exchange, markets, posNow: pd.DataFrame,
 
         if _stop is True:
             closePositionForce(exchange, markets, posNow, symbol)
-            sendAndPrintInfo(f"{STRATEGY_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
+            sendAndPrintInfo(f"{RUN_NAME} {symbol} 满足平仓因子{CLOSE_FACTOR}:{CLOSE_METHOD}已平仓")
             pos = getOpenPosition(exchange)
 
     return pos
@@ -620,7 +620,7 @@ def getPositions(exchange):
         return p
     except Exception as e:
         logger.exception(e)
-        sendAndRaise(f"{STRATEGY_NAME}: getPositions()错误, 程序退出。{e}")
+        sendAndRaise(f"{RUN_NAME}: getPositions()错误, 程序退出。{e}")
 
 
 def getOpenPosition(exchange):
@@ -708,7 +708,7 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
             retryIt(exchange.fapiPrivatePostLeverage, paras={"symbol": symbolId, "leverage": leverage})
             retryIt(exchange.fapiPrivatePostMargintype, paras={"symbol": symbolId, "marginType": marginType})
         except Exception as e:
-            sendAndPrintError(f"{STRATEGY_NAME} {symbol}构造订单信息出错,跳过该币种:{e}")
+            sendAndPrintError(f"{RUN_NAME} {symbol}构造订单信息出错,跳过该币种:{e}")
             logger.exception(e)
             continue
 
@@ -729,7 +729,7 @@ def placeOrder(exchange, markets, prices, signal, leverage, marginType):
             if "orderId" in v:
                 orderResp.append(v)
             else:
-                sendAndPrintError(f"{STRATEGY_NAME} 下单出错: {_orderP[idx]}  {v}")
+                sendAndPrintError(f"{RUN_NAME} 下单出错: {_orderP[idx]}  {v}")
 
         time.sleep(SLEEP_SHORT)
 
